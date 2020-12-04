@@ -246,7 +246,7 @@ def main(args):
     zcolumn = config._sections['DMcalibrator']['zcolumn']
     mzcolumn = config._sections['DMcalibrator']['mzcolumn']
     seqcolumn = config._sections['DMcalibrator']['seqcolumn']
-    seqdmcolumn = config._sections['General']['seqdmcolumn']
+    seqdmcolumn = config._sections['DMcalibrator']['seqdmcolumn']
     #dmcolumn = config._sections['DMcalibrator']['dmcolumn']
     proteincolumn = config._sections['DMcalibrator']['proteincolumn']
     decoyprefix = config._sections['DMcalibrator']['decoyprefix']
