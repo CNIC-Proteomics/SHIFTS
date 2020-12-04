@@ -297,14 +297,20 @@ if __name__ == '__main__':
             config.write(newconfig)
 
     # logging debug level. By default, info level
+    log_file = outfile = args.infile[:-15] + 'PeakAssignation_log.txt'
+    log_file_debug = outfile = args.infile[:-15] + 'PeakAssignation_log_debug.txt'
     if args.verbose:
         logging.basicConfig(level=logging.DEBUG,
                             format='%(asctime)s - %(levelname)s - %(message)s',
-                            datefmt='%m/%d/%Y %I:%M:%S %p')
+                            datefmt='%m/%d/%Y %I:%M:%S %p',
+                            handlers=[logging.FileHandler(log_file_debug),
+                                      logging.StreamHandler()])
     else:
         logging.basicConfig(level=logging.INFO,
                             format='%(asctime)s - %(levelname)s - %(message)s',
-                            datefmt='%m/%d/%Y %I:%M:%S %p')
+                            datefmt='%m/%d/%Y %I:%M:%S %p',
+                            handlers=[logging.FileHandler(log_file),
+                                      logging.StreamHandler()])
 
     # start main function
     logging.info('start script: '+"{0}".format(" ".join([x for x in sys.argv])))
