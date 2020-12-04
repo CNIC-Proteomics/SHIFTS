@@ -308,6 +308,13 @@ def main(args):
     # fdr_filter = config._sections['PeakFDRer']['fdr_filter']
     # target_filter = config._sections['PeakFDRer']['target_filter']
     
+    # try:
+    #     if not os.path.exists(args.output):
+    #         os.makedirs(args.output)
+    #         logging.info("Create output directory at %s " % args.output)
+    # except OSError:
+    #     sys.exit("Could not create output directory at %s" % args.output)
+    
     # Read input file
     logging.info('Read input file')
     #df = pd.read_feather(args.infile)
@@ -362,20 +369,22 @@ def main(args):
     # d_h.to_csv("kk_head.tsv", sep="\t")
     # d_t.to_csv("kk_tail.tsv", sep="\t")
     
-
-    logging.info("Write output file")
-    # https://towardsdatascience.com/the-best-format-to-save-pandas-data-414dca023e0d
-    # begin:printHDF5
-    # Note: Explote the Memory!!!
-    # assign NumExpr for the tables module
-    # tables.parameters.MAX_NUMEXPR_THREADS = args.n_workers
-    # df.to_hdf('data.h5', key='df', mode='w')
-    # end:printHDF5
-    # df.to_csv('data.tsv', sep="\t", index=False)
+    # Clean filename
+    df['Filename'] = df.apply(lambda x: x['Filename'].split('\\')[-1].split('/')[-1][:-4], axis=1)
+    # Split in folders by Experiment
+        
+    logging.info("Write output files")
+    dfs = df.groupby('Experiment')
+    for group in list(dfs.groups.keys()):
+        group_path = args.output + group
+        if not os.path.exists(group_path):
+            os.mkdir(group_path)
+        outfile = os.path.join(group_path, args.infile.split('\\')[-1].split('/')[-1][:-4] + '_' + group + '_FDR.txt')
+        group_df = dfs.get_group(group)
+        group_df.to_csv(outfile, index=False, sep='\t', encoding='utf-8')
     
-    outfile = args.infile[:-4] + '_FDR.txt'
-    #df.to_feather(outfile)
-    df.to_csv(outfile, index=False, sep='\t', encoding='utf-8')
+    #outfile = args.infile[:-4] + '_FDR.txt'
+    #df.to_csv(outfile, index=False, sep='\t', encoding='utf-8')
     
 
     
@@ -395,9 +404,10 @@ if __name__ == '__main__':
         
     defaultconfig = os.path.join(os.path.dirname(__file__), "config/SHIFTS.ini")
     
-    parser.add_argument('-i',  '--infile', required=True, help='Input feather file with the peak assignation')
+    parser.add_argument('-i',  '--infile', required=True, help='Input file with the peak assignation')
     parser.add_argument('-e',  '--experiment_table', required=True, help='Tab-separated file containing experiment names and file paths')
-    parser.add_argument('-c', '--config', default=defaultconfig, help='Path to custom config.ini file')
+    parser.add_argument('-c',  '--config', default=defaultconfig, help='Path to custom config.ini file')
+    parser.add_argument('-o',  '--output', required=True, help='Output directory. Will be created if it does not exist')
     
     parser.add_argument('-s',  '--score_column', help='Name of column with score for FDR calculation')
     #parser.add_argument('-f',  '--fdr_filter', help='FDR value to filter by')
@@ -427,10 +437,20 @@ if __name__ == '__main__':
     if config.getint('Logging', 'create_ini') == 1:
         with open(os.path.dirname(args.infile) + '/SHIFTS.ini', 'w') as newconfig:
             config.write(newconfig)
+    
+    created = 0
+    try:
+        if not os.path.exists(args.output):
+            os.makedirs(args.output)
+            created = 1
+    except OSError:
+        sys.exit("Could not create output directory at %s" % args.output)
 
     # logging debug level. By default, info level
-    log_file = args.infile[:-4] + '_FDR_log.txt'
-    log_file_debug = args.infile[:-4] + '_FDR_log_debug.txt'
+    #log_file = args.infile[:-4] + '_FDR_log.txt'
+    log_file = os.path.join(args.output, args.infile.split('\\')[-1].split('/')[-1][:-4] + '_FDR_log.txt')
+    log_file_debug = os.path.join(args.output, args.infile.split('\\')[-1].split('/')[-1][:-4] + '_FDR_log_debug.txt')
+    #log_file_debug = args.infile[:-4] + '_FDR_log_debug.txt'
     if args.verbose:
         logging.basicConfig(level=logging.DEBUG,
                             format='%(asctime)s - %(levelname)s - %(message)s',
@@ -446,5 +466,7 @@ if __name__ == '__main__':
 
     # start main function
     logging.info('start script: '+"{0}".format(" ".join([x for x in sys.argv])))
+    if created == 1:
+        logging.info("Created output directory at %s " % args.output)
     main(args)
     logging.info('end script')
