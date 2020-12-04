@@ -137,6 +137,19 @@ def bin_operations(df, apex_list, ppm_max, peak_label, orphan_label,
     # outfile = os.path.join("D:/tmp/kk/", bin+"_kk.tsv")
     # df.to_csv(outfile, sep="\t", index=False)
     return df  
+
+def format_seq(seqdm, dm, decimal_places):
+    '''
+    Make column with sequence and deltamass.    
+    '''
+    #df.apply(lambda x: x[seqdmcolumn].split('[')[0] + '[' + str(round(x[col_DM], decimal_places)) + ']' + x[seqdmcolumn].split(']')[1], axis = 1)
+    if '[' in str(seqdm):
+        formatseq = str(seqdm).split('[')[0] + '[' + str(round(float(dm), decimal_places)) + ']' + str(seqdm).split(']')[1]
+    elif '_' in str(seqdm):
+        formatseq = str(seqdm).split('_')[0] + '_' + str(round(float(dm), decimal_places))
+    else:
+        sys.exit("Unrecognized sequence format in '" + str(config._sections['PeakAssignator']['mod_peptide_column']) + "' column!")
+    return formatseq
     
 #################
 # Main function #
@@ -156,8 +169,8 @@ def main(args):
     col_ppm = config._sections['PeakAssignator']['ppm_column']
     peak_label = config._sections['PeakAssignator']['peak_label']
     orphan_label = config._sections['PeakAssignator']['orphan_label']
-    seqdmcolumn = config._sections['General']['seqdmcolumn']
-    assignseqcolumn = config._sections['PeakAssignator']['assignseqcolumn']
+    seqdmcolumn = config._sections['PeakAssignator']['mod_peptide_column']
+    assignseqcolumn = config._sections['PeakAssignator']['assign_seq_column']
     decimal_places = int(config._sections['General']['decimal_places'])
     
     # logging.info("get the list of files with the inputs")
@@ -217,9 +230,11 @@ def main(args):
     # d_h.to_csv("kk_head.tsv", sep="\t")
     # d_t.to_csv("kk_tail.tsv", sep="\t")
     
-    # Make assignseqcolumn
-    df.insert(df.columns.get_loc(seqdmcolumn)+2, assignseqcolumn, np.nan)
-    df[assignseqcolumn] = df.apply(lambda x: x[seqdmcolumn].split('[')[0] + '[' + str(round(x[col_DM], decimal_places)) + ']' + x[seqdmcolumn].split(']')[1], axis = 1)
+    # Make assignseqcolumn # TODO: make new seqcolumnXXXXX_xxxx
+    if assignseqcolumn not in df:
+        df.insert(df.columns.get_loc(seqdmcolumn)+2, assignseqcolumn, np.nan) 
+    df[assignseqcolumn] = df.apply(lambda x: format_seq(x[seqdmcolumn], x[col_DM], decimal_places), axis = 1)
+    #df[assignseqcolumn] = df.apply(lambda x: x[seqdmcolumn].split('[')[0] + '[' + str(round(x[col_DM], decimal_places)) + ']' + x[seqdmcolumn].split(']')[1], axis = 1)
 
     logging.info("Write output file")
     # https://towardsdatascience.com/the-best-format-to-save-pandas-data-414dca023e0d
