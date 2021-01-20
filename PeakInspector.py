@@ -107,7 +107,7 @@ class PlotObject():
                 'columns': [i.strip() for i in re.split(r",\s?|;\s?|\s", config.get(section, 'columnName'))],
                 'plotType': [i.strip() for i in re.split(r",\s?|;\s?|\s", config.get(section, 'plotType'))],
                 'threshold': [float(i.strip()) for i in re.split(r",\s?|;\s?|\s", config.get(section, 'thresholds'))\
-                                if re.search(r"^\d+(\.\d*)?([eE]\d+)?$", i.strip())],
+                                if re.search(r"^-?\d+(\.\d*)?([eE]-?\d+)?$", i.strip())],
                 'x_axis': config.get(section, 'x_axis')
             }
 
@@ -126,7 +126,7 @@ class PlotObject():
             "columns": [col for col in user_selection['y_axis'] if user_selection['y_axis'][col]["selected"].get()],
             "plotType": [user_selection['y_axis'][col]['type'].get() \
                 for col in user_selection['y_axis'] if user_selection['y_axis'][col]["selected"].get()],
-            "threshold": [float(thr) for thr in [thr1, thr2] if re.search(r"^\d+(\.\d*)?([eE]\d+)?$", thr)],
+            "threshold": [float(thr) for thr in [thr1, thr2] if re.search(r"^-?\d+(\.\d*)?([eE]-?\d+)?$", thr)],
             "x_axis": user_selection['x_axis'].get()
         }
 
