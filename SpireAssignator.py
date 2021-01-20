@@ -86,7 +86,7 @@ if __name__ == '__main__':
 
         ''')
         
-    defaultconfig = os.path.join(os.path.dirname(__file__), "config/PeakModeller.ini")
+    defaultconfig = os.path.join(os.path.dirname(__file__), "config/SHIFTS.ini")
     
     parser.add_argument('-i',  '--infile', required=True, help='Input file that contains the peak picking')  
     
@@ -111,7 +111,7 @@ if __name__ == '__main__':
         config.set('Logging', 'create_ini', '1')
     # if something is changed, write a copy of ini
     if config.getint('Logging', 'create_ini') == 1: #TODO: check that other modules will not overwrite
-        with open(os.path.dirname(args.infile) + '/PeakModeller.ini', 'w') as newconfig:
+        with open(os.path.dirname(args.infile) + '/SHIFTS.ini', 'w') as newconfig:
             config.write(newconfig)
 
     # logging debug level. By default, info level
