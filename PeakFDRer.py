@@ -382,6 +382,7 @@ def main(args):
         outfile = os.path.join(group_path, args.infile.split('\\')[-1].split('/')[-1][:-4] + '_' + group + '_FDR.txt')
         group_df = dfs.get_group(group)
         group_df.to_csv(outfile, index=False, sep='\t', encoding='utf-8')
+        logging.info('\t' + group + ': ' + str(outfile))
     
     #outfile = args.infile[:-4] + '_FDR.txt'
     #df.to_csv(outfile, index=False, sep='\t', encoding='utf-8')
