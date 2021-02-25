@@ -231,6 +231,19 @@ def labelTargetDecoy(df, proteincolumn, decoyprefix):
     df['Label'] = df.apply(lambda x: 'Decoy' if (x[proteincolumn][0:5]==decoyprefix) else 'Target', axis = 1)
     return df
 
+def format_seq(seqdm, dm, decimal_places):
+    '''
+    Make column with sequence and deltamass.    
+    '''
+    #df.apply(lambda x: x[seqdmcolumn].split('[')[0] + '[' + str(round(x[col_DM], decimal_places)) + ']' + x[seqdmcolumn].split(']')[1], axis = 1)
+    if '[' in str(seqdm):
+        formatseq = str(seqdm).split('[')[0] + '[' + str(round(float(dm), decimal_places)) + ']' + str(seqdm).split(']')[1]
+    elif '_' in str(seqdm):
+        formatseq = str(seqdm).split('_')[0] + '_' + str(round(float(dm), decimal_places))
+    else:
+        sys.exit("Unrecognized sequence format in '" + str(config._sections['DMcalibrator']['seqdmcolumn']) + "' column!")
+    return formatseq
+
 #################
 # Main function #
 #################
@@ -305,8 +318,8 @@ def main(args):
     df = getDMcal(df, mzcolumn, calmzcolumn, zcolumn)
     # Make calseqcolumn
     df.insert(df.columns.get_loc(seqdmcolumn)+1, calseqcolumn, np.nan)
-    #df[calseqcolumn] = df[seqdmcolumn].split('[')[0] + '[' + str(round(df['cal_dm_mh'], decimal_places)) + ']' + df[seqdmcolumn].split(']')[1]
-    df[calseqcolumn] = df.apply(lambda x: x[seqdmcolumn].split('[')[0] + '[' + str(round(x['cal_dm_mh'], decimal_places)) + ']' + x[seqdmcolumn].split(']')[1], axis = 1)
+    #df[calseqcolumn] = df.apply(lambda x: x[seqdmcolumn].split('[')[0] + '[' + str(round(x['cal_dm_mh'], decimal_places)) + ']' + x[seqdmcolumn].split(']')[1], axis = 1)
+    df[calseqcolumn] = df.apply(lambda x: format_seq(x[seqdmcolumn], x['cal_dm_mh'], decimal_places), axis = 1)
     #Write to txt file
     logging.info("Writing output file...")
     outfile = args.infile[:-4] + '_calibrated.txt'
