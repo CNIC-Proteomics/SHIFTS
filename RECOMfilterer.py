@@ -72,15 +72,81 @@ def modelDecoys(df):
     # Exponential curve fitting
     xs = df['DiffScoreAbs'].to_numpy()
     ys = df['A/D_Ratio'].to_numpy()
-    # perform the fit
+    # perform the fit #TODO: let user choose starting parameters, using those as default
     popt, pcov = scipy.optimize.curve_fit(expFunction, xs, ys, p0=[0.5,5,0], maxfev=5000) # 5000 iterations should be enough but this limit might need to be adjusted
-    print(popt)
-    plt.plot(xs, ys, '.', label="A/D Ratio")
-    plt.plot(xs, expFunction(xs, *popt), 'r-', label="Fitted Curve") # The * in front of popt when you plot will expand out the terms into the a, b, and c that expFunction is expecting
-    plt.title("A/D Ratio vs DiffScore and theoretical curve")
-    plt.savefig(os.path.join(Path(args.output), Path(args.infile).stem + '_Ratio_vs_DiffScore.png'))
     
-    return df
+    # Estimate As
+    df['Fitted_Curve'] = expFunction(df['DiffScoreAbs'], *popt)
+    df['A_Est'] = df['Rank_D'] * df['Fitted_Curve']
+    
+    # Plot results
+    fig1, plt1 = plt.subplots()
+    plt1.plot(xs, ys, '.', label="A/D Ratio")
+    plt1.plot(xs, expFunction(xs, *popt), 'r-', label="Fitted Curve") # The * in front of popt when you plot will expand out the terms into the a, b, and c that expFunction is expecting
+    plt1.set_xlabel('DiffScoreAbs')
+    plt1.set_ylabel('A/D Ratio')
+    plt1.set_title("A/D Ratio vs DiffScore and theoretical curve")
+    plt1.legend()
+    fig1.savefig(os.path.join(Path(args.output), Path(args.infile).stem + '_Ratio_vs_DiffScore.png'))
+    
+    fig2, plt2 = plt.subplots()
+    plt2.plot(xs, df['Rank_D'].to_numpy(), '-', label="Rank D")
+    plt2.plot(xs, df['Rank_A'].to_numpy(), '-', label="Rank A")
+    plt2.plot(xs, df['A_Est'].to_numpy(), '-', label="Est. A")
+    plt2.set_xlabel('DiffScoreAbs')
+    plt2.set_ylabel('Rank')
+    plt2.set_title("Rank D and A vs DiffScore")
+    plt2.legend()
+    fig2.savefig(os.path.join(Path(args.output), Path(args.infile).stem + '_Rank_vs_DiffScore.png'))
+    
+    return popt
+
+def checkTargets(df, popt):
+    '''
+    Check model using targets below score threshold.
+    '''
+    # Count As and Ds
+    df['Rank'] = df.groupby('DiffType').cumcount()+1 # This column can be deleted later
+    df['Rank_A'] = np.where(df['DiffType']=='A', df['Rank'], 0)
+    df['Rank_A'] = df['Rank_A'].replace(to_replace=0, method='ffill')
+    df['Rank_D'] = np.where(df['DiffType'] == 'D', df['Rank'], 0)
+    df['Rank_D'] =  df['Rank_D'].replace(to_replace=0, method='ffill')
+    df.drop(['Rank'], axis = 1, inplace = True)
+    
+    # Estimate As
+    df['Fitted_Curve'] = expFunction(df['DiffScoreAbs'], *popt)
+    df['A_Est'] = df['Rank_D'] * df['Fitted_Curve']
+    
+    # Plot results
+    fig1, plt1 = plt.subplots()
+    plt1.plot(df['DiffScoreAbs'].to_numpy(), df['Rank_D'].to_numpy(), '-', label="Rank D")
+    plt1.plot(df['DiffScoreAbs'].to_numpy(), df['Rank_A'].to_numpy(), '-', label="Rank A")
+    plt1.plot(df['DiffScoreAbs'].to_numpy(), df['A_Est'].to_numpy(), '-', label="Est. A")
+    plt1.set_xlabel('DiffScoreAbs')
+    plt1.set_ylabel('Rank')
+    plt1.set_title("Rank D and A vs DiffScore")
+    plt1.legend()
+    fig1.savefig(os.path.join(Path(args.output), Path(args.infile).stem + '_Rank_vs_DiffScore_Targets_Below_Threshold.png'))
+    
+    return
+
+def getDiffScoreCutOff(df, popt):
+    '''
+    Use targets above score threshold to calculate DiffScoreCutOff that achieves "A est. FDR" < increase_threshold
+    '''
+    # Count As and Ds
+    df['Rank'] = df.groupby('DiffType').cumcount()+1 # This column can be deleted later
+    df['Rank_A'] = np.where(df['DiffType']=='A', df['Rank'], 0)
+    df['Rank_A'] = df['Rank_A'].replace(to_replace=0, method='ffill')
+    df['Rank_D'] = np.where(df['DiffType'] == 'D', df['Rank'], 0)
+    df['Rank_D'] =  df['Rank_D'].replace(to_replace=0, method='ffill')
+    df.drop(['Rank'], axis = 1, inplace = True)
+    
+    # Estimate As
+    df['Fitted_Curve'] = expFunction(df['DiffScoreAbs'], *popt)
+    df['A_Est'] = df['Rank_D'] * df['Fitted_Curve']
+    
+    return DiffScoreCutOff
 
 def main(args):
     '''
@@ -115,17 +181,27 @@ def main(args):
     true_decoys.sort_values(by=['DiffScoreAbs'], ascending=False, inplace=True) # Sort by descending abs. DiffScore
     true_decoys.reset_index(drop=True, inplace=True)
     # Make model
-    modelDecoys(df)
+    popt = modelDecoys(df) # popt is an array
+    logging.info("Model parameters for Y = a+b*exp(-c*X): a = " + str(popt[0]) + " b = " + str(popt[1]) + " c = " + str(popt[2]))
     
     # Fake targets
     fake_targets = targets[targets[recom_score]<=t_decoy]
-    # Check model (graph?)
-    
+    fake_targets = fake_targets[fake_targets['DiffType']!='N'] # Don't use values close to 0 or not rescored by Recom
+    logging.info("Targets <= " + str(t_decoy) + ": " + str(fake_targets.shape[0])) # true_decoys = decoys[decoys['Closest_Xcorr']<=1]
+    fake_targets.sort_values(by=['DiffScoreAbs'], ascending=False, inplace=True) # Sort by descending abs. DiffScore
+    fake_targets.reset_index(drop=True, inplace=True)
+    # Check model
+    checkTargets(fake_targets, popt)
     
     # True targets
     true_targets = targets[targets[recom_score]>=t_target]
+    true_targets = true_targets[true_targets['DiffType']!='N'] # Don't use values close to 0 or not rescored by Recom
     logging.info("Targets >= " + str(t_target) + ": " + str(true_targets.shape[0]))
+    true_targets.sort_values(by=['DiffScoreAbs'], ascending=False, inplace=True) # Sort by descending abs. DiffScore
+    true_targets.reset_index(drop=True, inplace=True)
     # Apply model
+    dsco = getDiffScoreCutOff(true_targets, popt)
+    
     
     # Apply DiffScoreCutOff (0.05 or t_increase) to whole df
     
