@@ -19,7 +19,11 @@ import numpy as np
 import os
 import pandas as pd
 from pathlib import Path
+import matplotlib.pyplot as plt
+import scipy.optimize
 import sys
+
+#test file: r'D:\CNIC\asdf\RECOMFilterer\TMT2_HDL_ALL.txt'
 
 def readInfile(infile):
     '''    
@@ -39,10 +43,16 @@ def labelTargetDecoy(df, proteincolumn, decoyprefix):
 
 def labelAD(df):
     '''
-    Label increases and decreases according to DiffScore column.
+    Label increases and decreases according to DiffScore column. A = Increase, D = Decrease, N = close to 0 or not rescored.
     '''
     df['DiffType'] = df.apply(lambda x: 'D' if x['DiffScore']<1E-5 else ('A' if x['DiffScore']>1E-5 else 'N'), axis = 1)
     return df
+
+def expFunction(x, b, c, a):
+    '''
+    Exponential decay function, Y=a+b*exp(-c*X).
+    '''
+    return b * np.exp(-c * x) + a
 
 def modelDecoys(df):
     '''
@@ -59,6 +69,16 @@ def modelDecoys(df):
     # Calculate A/D ratio ("FDR")
     df['A/D_Ratio'] = df['Rank_A']/df['Rank_D']
     
+    # Exponential curve fitting
+    xs = df['DiffScoreAbs'].to_numpy()
+    ys = df['A/D_Ratio'].to_numpy()
+    # perform the fit
+    popt, pcov = scipy.optimize.curve_fit(expFunction, xs, ys, p0=[0.5,5,0], maxfev=5000) # 5000 iterations should be enough but this limit might need to be adjusted
+    print(popt)
+    plt.plot(xs, ys, '.', label="A/D Ratio")
+    plt.plot(xs, expFunction(xs, *popt), 'r-', label="Fitted Curve") # The * in front of popt when you plot will expand out the terms into the a, b, and c that expFunction is expecting
+    plt.title("A/D Ratio vs DiffScore and theoretical curve")
+    plt.savefig(os.path.join(Path(args.output), Path(args.infile).stem + '_Ratio_vs_DiffScore.png'))
     
     return df
 
@@ -77,11 +97,11 @@ def main(args):
     
     # Read infile
     logging.info("Reading input file...")
-    df = readInfile(Path(args.infile))
+    df = readInfile(Path(args.infile)) # df = readInfile(Path(infile))
     
     # Separate targets and decoys
-    df = labelTargetDecoy(df, proteincolumn, decoyprefix)
-    df['DiffScore'] = df[recom_score] - df[comet_score]
+    df = labelTargetDecoy(df, proteincolumn, decoyprefix) # df = labelTargetDecoy(df, 'protein', 'DECOY')
+    df['DiffScore'] = df[recom_score] - df[comet_score] # df['DiffScore'] = df['Closest_Xcorr'] - df['xcorr']
     df['DiffScoreAbs'] = abs(df['DiffScore'])
     df = labelAD(df)
     targets = df[df['Label']=="Target"]
@@ -89,13 +109,13 @@ def main(args):
     logging.info("Targets: " + str(targets.shape[0]) + " | Decoys: " + str(decoys.shape[0]))
     
     # True decoys
-    true_decoys = decoys[decoys[recom_score]<=t_decoy]
-    logging.info("Decoys <= " + str(t_decoy) + ": " + str(true_decoys.shape[0]))
-    true_decoys = true_decoys[true_decoys['DiffType']!='N'] # Don't use values close to 0
+    true_decoys = decoys[decoys[recom_score]<=t_decoy] # TODO: are we filtering by Recom or Comet score?
+    true_decoys = true_decoys[true_decoys['DiffType']!='N'] # Don't use values close to 0 or not rescored by Recom
+    logging.info("Decoys <= " + str(t_decoy) + ": " + str(true_decoys.shape[0])) # true_decoys = decoys[decoys['Closest_Xcorr']<=1]
     true_decoys.sort_values(by=['DiffScoreAbs'], ascending=False, inplace=True) # Sort by descending abs. DiffScore
     true_decoys.reset_index(drop=True, inplace=True)
     # Make model
-    
+    modelDecoys(df)
     
     # Fake targets
     fake_targets = targets[targets[recom_score]<=t_decoy]
@@ -131,7 +151,8 @@ if __name__ == '__main__':
         
     defaultconfig = os.path.join(os.path.dirname(__file__), "config/SHIFTS.ini")
     
-    parser.add_argument('-i',  '--infile', required=True, help='Input file')  
+    parser.add_argument('-i',  '--infile', required=True, help='Input file')
+    parser.add_argument('-i',  '--output', required=True, help='Output directory')
     
     parser.add_argument('-d', '--decoy', help='Decoy threshold')
     parser.add_argument('-t', '--target', help='Target threshold')
