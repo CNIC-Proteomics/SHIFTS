@@ -130,7 +130,7 @@ def checkTargets(df, popt):
     
     return
 
-def getDiffScoreCutOff(df, popt):
+def getDiffScoreCutOff(df, popt, t_increase):
     '''
     Use targets above score threshold to calculate DiffScoreCutOff that achieves "A est. FDR" < increase_threshold
     '''
@@ -145,6 +145,23 @@ def getDiffScoreCutOff(df, popt):
     # Estimate As
     df['Fitted_Curve'] = expFunction(df['DiffScoreAbs'], *popt)
     df['A_Est'] = df['Rank_D'] * df['Fitted_Curve']
+    
+    # Plot results
+    fig1, plt1 = plt.subplots()
+    plt1.plot(df['DiffScoreAbs'].to_numpy(), df['Rank_D'].to_numpy(), '-', label="Rank D")
+    plt1.plot(df['DiffScoreAbs'].to_numpy(), df['Rank_A'].to_numpy(), '-', label="Rank A")
+    plt1.plot(df['DiffScoreAbs'].to_numpy(), df['A_Est'].to_numpy(), '-', label="Est. A")
+    plt1.set_xlabel('DiffScoreAbs')
+    plt1.set_ylabel('Rank')
+    plt1.set_title("Rank D and A vs DiffScore")
+    plt1.legend()
+    fig1.savefig(os.path.join(Path(args.output), Path(args.infile).stem + '_Rank_vs_DiffScore_Targets_Above_Threshold.png'))
+    
+    # Calculate "FDR"
+    df['A_Est/A_Obs'] = df['A_Est'] / df['Rank_A']
+    # TODO: calculate min DiffScore that still meets the threshold for FDR
+    cutoff = df[df['A_Est/A_Obs']<=t_increase].tail(1)
+    DiffScoreCutOff = cutoff['DiffScoreAbs']
     
     return DiffScoreCutOff
 
@@ -181,7 +198,7 @@ def main(args):
     true_decoys.sort_values(by=['DiffScoreAbs'], ascending=False, inplace=True) # Sort by descending abs. DiffScore
     true_decoys.reset_index(drop=True, inplace=True)
     # Make model
-    popt = modelDecoys(df) # popt is an array
+    popt = modelDecoys(true_decoys) # popt is an array
     logging.info("Model parameters for Y = a+b*exp(-c*X): a = " + str(popt[0]) + " b = " + str(popt[1]) + " c = " + str(popt[2]))
     
     # Fake targets
@@ -200,8 +217,8 @@ def main(args):
     true_targets.sort_values(by=['DiffScoreAbs'], ascending=False, inplace=True) # Sort by descending abs. DiffScore
     true_targets.reset_index(drop=True, inplace=True)
     # Apply model
-    dsco = getDiffScoreCutOff(true_targets, popt)
-    
+    dsco = getDiffScoreCutOff(true_targets, popt, t_increase)
+    logging.info("Increase threshold: " + str(t_increase) + " | DiffScoreCutOff: " + str(dsco))
     
     # Apply DiffScoreCutOff (0.05 or t_increase) to whole df
     
