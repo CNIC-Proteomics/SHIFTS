@@ -161,9 +161,18 @@ def getDiffScoreCutOff(df, popt, t_increase):
     df['A_Est/A_Obs'] = df['A_Est'] / df['Rank_A']
     # TODO: calculate min DiffScore that still meets the threshold for FDR
     cutoff = df[df['A_Est/A_Obs']<=t_increase].tail(1)
-    DiffScoreCutOff = cutoff['DiffScoreAbs']
+    DiffScoreCutOff = cutoff.iloc[0]['DiffScoreAbs']
     
     return DiffScoreCutOff
+
+def filterRECOM(df, dsco, a_dm, r_dm):
+    '''
+    Keep only RECOM IDs that pass the DiffScore threshold.
+    '''
+    df['RECOMfiltered_DM'] = df.apply(lambda x: x[r_dm] if x['DiffScore']<=dsco else x[a_dm], axis = 1)
+    df['RECOMfiltered_type'] = df.apply(lambda x: 'RECOM' if x['DiffScore']<=dsco else 'COMET', axis = 1)
+    df = df.drop(['DiffScore', 'DiffScoreAbs'], 1)
+    return df
 
 def main(args):
     '''
@@ -173,8 +182,10 @@ def main(args):
     t_decoy = float(config._sections['RECOMfilterer']['decoy_threshold'])
     t_target = float(config._sections['RECOMfilterer']['target_threshold'])
     t_increase = float(config._sections['RECOMfilterer']['target_threshold'])
-    proteincolumn = config._sections['DMcalibrator']['proteincolumn']
-    decoyprefix = config._sections['DMcalibrator']['decoyprefix']
+    proteincolumn = config._sections['RECOMfilterer']['proteincolumn']
+    assigneddm = config._sections['RECOMfilterer']['assigned_deltamass']
+    recomdm = config._sections['RECOMfilterer']['recom_deltamass']
+    decoyprefix = config._sections['RECOMfilterer']['decoyprefix']
     recom_score = config._sections['RECOMfilterer']['recom_score']
     comet_score = config._sections['RECOMfilterer']['comet_score']
     
@@ -221,12 +232,12 @@ def main(args):
     logging.info("Increase threshold: " + str(t_increase) + " | DiffScoreCutOff: " + str(dsco))
     
     # Apply DiffScoreCutOff (0.05 or t_increase) to whole df
-    
-    
     # Choose which Recom improvements to keep: only those that pass DiffScoreCutOff. Otherwise we keep Comet
-    
-    
-    # Write to file    
+    df = filterRECOM(df, dsco, assigneddm, recomdm)
+
+    # Write to file
+    outfile = args.infile[:-4] + '_RECOMfiltered.txt'
+    df.to_csv(outfile, index=False, sep='\t', encoding='utf-8')    
     
     
 if __name__ == '__main__':
