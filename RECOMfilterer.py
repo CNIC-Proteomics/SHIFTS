@@ -233,12 +233,14 @@ def main(args):
     
     # Apply DiffScoreCutOff (0.05 or t_increase) to whole df
     # Choose which Recom improvements to keep: only those that pass DiffScoreCutOff. Otherwise we keep Comet
+    logging.info("Filtering by DiffScoreCutOff...")
     df = filterRECOM(df, dsco, assigneddm, recomdm)
 
     # Write to file
+    logging.info("Writing output file...")
     outfile = args.infile[:-4] + '_RECOMfiltered.txt'
-    df.to_csv(outfile, index=False, sep='\t', encoding='utf-8')    
-    
+    df.to_csv(outfile, index=False, sep='\t', encoding='utf-8')   
+    logging.info("Recom filtering finished.")
     
 if __name__ == '__main__':
 
