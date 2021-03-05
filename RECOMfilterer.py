@@ -87,7 +87,8 @@ def modelDecoys(df):
     plt1.set_ylabel('A/D Ratio')
     plt1.set_title("A/D Ratio vs DiffScore and theoretical curve")
     plt1.legend()
-    fig1.savefig(os.path.join(Path(args.output), Path(args.infile).stem + '_Ratio_vs_DiffScore.png'))
+    #fig1.savefig(os.path.join(Path(args.output), Path(args.infile).stem + '_Ratio_vs_DiffScore.png'))
+    fig1.savefig(args.infile[:-4] + '_Ratio_vs_DiffScore.png')
     
     fig2, plt2 = plt.subplots()
     plt2.plot(xs, df['Rank_D'].to_numpy(), '-', label="Rank D")
@@ -97,7 +98,8 @@ def modelDecoys(df):
     plt2.set_ylabel('Rank')
     plt2.set_title("Rank D and A vs DiffScore")
     plt2.legend()
-    fig2.savefig(os.path.join(Path(args.output), Path(args.infile).stem + '_Rank_vs_DiffScore.png'))
+    #fig2.savefig(os.path.join(Path(args.output), Path(args.infile).stem + '_Rank_vs_DiffScore.png'))
+    fig2.savefig(args.infile[:-4] + '_Rank_vs_DiffScore.png')
     
     return popt
 
@@ -126,7 +128,8 @@ def checkTargets(df, popt):
     plt1.set_ylabel('Rank')
     plt1.set_title("Rank D and A vs DiffScore")
     plt1.legend()
-    fig1.savefig(os.path.join(Path(args.output), Path(args.infile).stem + '_Rank_vs_DiffScore_Targets_Below_Threshold.png'))
+    #fig1.savefig(os.path.join(Path(args.output), Path(args.infile).stem + '_Rank_vs_DiffScore_Targets_Below_Threshold.png'))
+    fig1.savefig(args.infile[:-4] + '_Rank_vs_DiffScore_Targets_Below_Threshold.png')
     
     return
 
@@ -155,14 +158,14 @@ def getDiffScoreCutOff(df, popt, t_increase):
     plt1.set_ylabel('Rank')
     plt1.set_title("Rank D and A vs DiffScore")
     plt1.legend()
-    fig1.savefig(os.path.join(Path(args.output), Path(args.infile).stem + '_Rank_vs_DiffScore_Targets_Above_Threshold.png'))
+    #fig1.savefig(os.path.join(Path(args.output), Path(args.infile).stem + '_Rank_vs_DiffScore_Targets_Above_Threshold.png'))
+    fig1.savefig(args.infile[:-4] + '_Rank_vs_DiffScore_Targets_Above_Threshold.png')
     
     # Calculate "FDR"
     df['A_Est/A_Obs'] = df['A_Est'] / df['Rank_A']
     # TODO: calculate min DiffScore that still meets the threshold for FDR
     cutoff = df[df['A_Est/A_Obs']<=t_increase].tail(1)
     DiffScoreCutOff = cutoff.iloc[0]['DiffScoreAbs']
-    
     return DiffScoreCutOff
 
 def filterRECOM(df, dsco, a_dm, r_dm):
@@ -181,13 +184,14 @@ def main(args):
     # Variables
     t_decoy = float(config._sections['RECOMfilterer']['decoy_threshold'])
     t_target = float(config._sections['RECOMfilterer']['target_threshold'])
-    t_increase = float(config._sections['RECOMfilterer']['target_threshold'])
-    proteincolumn = config._sections['RECOMfilterer']['proteincolumn']
+    t_increase = float(config._sections['RECOMfilterer']['increase_threshold'])
+    proteincolumn = config._sections['RECOMfilterer']['protein_column']
     assigneddm = config._sections['RECOMfilterer']['assigned_deltamass']
     recomdm = config._sections['RECOMfilterer']['recom_deltamass']
     decoyprefix = config._sections['RECOMfilterer']['decoyprefix']
     recom_score = config._sections['RECOMfilterer']['recom_score']
     comet_score = config._sections['RECOMfilterer']['comet_score']
+    decimal_places = int(config._sections['General']['decimal_places'])
     
     # Read infile
     logging.info("Reading input file...")
@@ -210,7 +214,7 @@ def main(args):
     true_decoys.reset_index(drop=True, inplace=True)
     # Make model
     popt = modelDecoys(true_decoys) # popt is an array
-    logging.info("Model parameters for Y = a+b*exp(-c*X): a = " + str(popt[0]) + " b = " + str(popt[1]) + " c = " + str(popt[2]))
+    logging.info("Model parameters for Y = a+b*exp(-c*X): a = " + str(round(popt[0], decimal_places)) + " b = " + str(round(popt[1], decimal_places)) + " c = " + str(round(popt[2], decimal_places)))
     
     # Fake targets
     fake_targets = targets[targets[recom_score]<=t_decoy]
@@ -229,7 +233,7 @@ def main(args):
     true_targets.reset_index(drop=True, inplace=True)
     # Apply model
     dsco = getDiffScoreCutOff(true_targets, popt, t_increase)
-    logging.info("Increase threshold: " + str(t_increase) + " | DiffScoreCutOff: " + str(dsco))
+    logging.info("Increase threshold: " + str(t_increase) + " | DiffScoreCutOff: " + str(round(dsco, decimal_places)))
     
     # Apply DiffScoreCutOff (0.05 or t_increase) to whole df
     # Choose which Recom improvements to keep: only those that pass DiffScoreCutOff. Otherwise we keep Comet
@@ -258,7 +262,8 @@ if __name__ == '__main__':
     defaultconfig = os.path.join(os.path.dirname(__file__), "config/SHIFTS.ini")
     
     parser.add_argument('-i',  '--infile', required=True, help='Input file')
-    parser.add_argument('-i',  '--output', required=True, help='Output directory')
+    #parser.add_argument('-o',  '--output', required=True, help='Output directory')
+    parser.add_argument('-c', '--config', default=defaultconfig, help='Path to custom config.ini file')
     
     parser.add_argument('-d', '--decoy', help='Decoy threshold')
     parser.add_argument('-t', '--target', help='Target threshold')
@@ -270,13 +275,13 @@ if __name__ == '__main__':
     # parse config
     config = configparser.ConfigParser(inline_comment_prefixes='#')
     config.read(args.config)
-    if args.percentage is not None:
+    if args.decoy is not None:
         config.set('RECOMfilterer', 'decoy_threshold', str(args.percentage))
         config.set('Logging', 'create_ini', '1')
-    if args.cometcolumn is not None:
+    if args.target is not None:
         config.set('RECOMfilterer', 'target_threshold', str(args.cometcolumn))
         config.set('Logging', 'create_ini', '1')
-    if args.recomcolumn is not None:
+    if args.increase is not None:
         config.set('RECOMfilterer', 'increase_threshold', str(args.recomcolumn))
         config.set('Logging', 'create_ini', '1')
     # if something is changed, write a copy of ini
@@ -290,11 +295,15 @@ if __name__ == '__main__':
     if args.verbose:
         logging.basicConfig(level=logging.DEBUG,
                             format='%(asctime)s - %(levelname)s - %(message)s',
-                            datefmt='%m/%d/%Y %I:%M:%S %p')
+                            datefmt='%m/%d/%Y %I:%M:%S %p',
+                            handlers=[logging.FileHandler(log_file_debug),
+                                      logging.StreamHandler()])
     else:
         logging.basicConfig(level=logging.INFO,
                             format='%(asctime)s - %(levelname)s - %(message)s',
-                            datefmt='%m/%d/%Y %I:%M:%S %p')
+                            datefmt='%m/%d/%Y %I:%M:%S %p',
+                            handlers=[logging.FileHandler(log_file),
+                                      logging.StreamHandler()])
 
     # start main function
     logging.info('start script: '+"{0}".format(" ".join([x for x in sys.argv])))
