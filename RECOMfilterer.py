@@ -38,7 +38,7 @@ def labelTargetDecoy(df, proteincolumn, decoyprefix):
     '''
     if 'Label' not in df:
         df.insert(df.columns.get_loc(proteincolumn)+1, 'Label', np.nan)
-    df['Label'] = df.apply(lambda x: 'Decoy' if (x[proteincolumn][0:5]==decoyprefix) else 'Target', axis = 1)
+    df['Label'] = df.apply(lambda x: 'Decoy' if (str(x[proteincolumn])[0:5]==decoyprefix) else 'Target', axis = 1)
     return df
 
 def labelAD(df):
@@ -96,10 +96,10 @@ def modelDecoys(df):
     plt2.plot(xs, df['A_Est'].to_numpy(), '-', label="Est. A")
     plt2.set_xlabel('DiffScoreAbs')
     plt2.set_ylabel('Rank')
-    plt2.set_title("Rank D and A vs DiffScore")
+    plt2.set_title("Rank D and A vs DiffScore (Decoys)")
     plt2.legend()
     #fig2.savefig(os.path.join(Path(args.output), Path(args.infile).stem + '_Rank_vs_DiffScore.png'))
-    fig2.savefig(args.infile[:-4] + '_Rank_vs_DiffScore.png')
+    fig2.savefig(args.infile[:-4] + '_Rank_vs_DiffScore_Decoys.png')
     
     return popt
 
@@ -126,7 +126,7 @@ def checkTargets(df, popt):
     plt1.plot(df['DiffScoreAbs'].to_numpy(), df['A_Est'].to_numpy(), '-', label="Est. A")
     plt1.set_xlabel('DiffScoreAbs')
     plt1.set_ylabel('Rank')
-    plt1.set_title("Rank D and A vs DiffScore")
+    plt1.set_title("Rank D and A vs DiffScore (Low-scoring targets)")
     plt1.legend()
     #fig1.savefig(os.path.join(Path(args.output), Path(args.infile).stem + '_Rank_vs_DiffScore_Targets_Below_Threshold.png'))
     fig1.savefig(args.infile[:-4] + '_Rank_vs_DiffScore_Targets_Below_Threshold.png')
@@ -156,7 +156,7 @@ def getDiffScoreCutOff(df, popt, t_increase):
     plt1.plot(df['DiffScoreAbs'].to_numpy(), df['A_Est'].to_numpy(), '-', label="Est. A")
     plt1.set_xlabel('DiffScoreAbs')
     plt1.set_ylabel('Rank')
-    plt1.set_title("Rank D and A vs DiffScore")
+    plt1.set_title("Rank D and A vs DiffScore (High-scoring targets)")
     plt1.legend()
     #fig1.savefig(os.path.join(Path(args.output), Path(args.infile).stem + '_Rank_vs_DiffScore_Targets_Above_Threshold.png'))
     fig1.savefig(args.infile[:-4] + '_Rank_vs_DiffScore_Targets_Above_Threshold.png')
