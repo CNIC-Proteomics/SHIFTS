@@ -244,7 +244,7 @@ def main(args):
     # Choose which Recom improvements to keep: only those that pass DiffScoreCutOff. Otherwise we keep Comet
     logging.info("Filtering by DiffScoreCutOff...")
     df, recomized = filterRECOM(df, dsco, assigneddm, recomdm)
-    logging.info("RECOMized " + str(recomized[0]) + "PSMs (" + str(recomized[0]/df.shape[0]) + " % of total PSMs")
+    logging.info("RECOMized " + str(recomized[0]) + " PSMs (" + str(round((recomized[0]/df.shape[0])*100, 2)) + " % of total PSMs)")
     logging.info("\t\t" + str(recomized[1]) + " Targets")
     logging.info("\t\t" + str(recomized[2]) + " Decoys")
 
