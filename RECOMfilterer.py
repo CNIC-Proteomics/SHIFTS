@@ -46,6 +46,7 @@ def labelAD(df):
     Label increases and decreases according to DiffScore column. A = Increase, D = Decrease, N = close to 0 or not rescored.
     '''
     df['DiffType'] = df.apply(lambda x: 'D' if x['DiffScore']<1E-5 else ('A' if x['DiffScore']>1E-5 else 'N'), axis = 1)
+    df['DiffType'] = df.apply(lambda x: 'N' if x['Closest_Xcorr']==0 else x['DiffType'])
     return df
 
 def expFunction(x, b, c, a):
