@@ -176,7 +176,11 @@ def filterRECOM(df, dsco, a_dm, r_dm):
     df['RECOMfiltered_DM'] = df.apply(lambda x: x[r_dm] if x['DiffScore']<=dsco else x[a_dm], axis = 1)
     df['RECOMfiltered_type'] = df.apply(lambda x: 'RECOM' if x['DiffScore']<=dsco else 'COMET', axis = 1)
     df = df.drop(['DiffScore', 'DiffScoreAbs'], 1)
-    return df
+    recomized = df['RECOMfiltered_type'].value_counts()['RECOM']
+    recomized_t = df[df['Label']=="Target"]['RECOMfiltered_type'].value_counts()['RECOM']
+    recomized_d = df[df['Label']=="Decoy"]['RECOMfiltered_type'].value_counts()['RECOM']
+    recomized = [recomized, recomized_t, recomized_d]
+    return df, recomized
 
 def main(args):
     '''
@@ -239,7 +243,10 @@ def main(args):
     # Apply DiffScoreCutOff (0.05 or t_increase) to whole df
     # Choose which Recom improvements to keep: only those that pass DiffScoreCutOff. Otherwise we keep Comet
     logging.info("Filtering by DiffScoreCutOff...")
-    df = filterRECOM(df, dsco, assigneddm, recomdm)
+    df, recomized = filterRECOM(df, dsco, assigneddm, recomdm)
+    logging.info("RECOMized " + str(recomized[0]) + "PSMs (" + str(recomized[0]/df.shape[0]) + " % of total PSMs")
+    logging.info("\t\t" + str(recomized[1]) + " Targets")
+    logging.info("\t\t" + str(recomized[2]) + " Decoys")
 
     # Write to file
     logging.info("Writing output file...")
