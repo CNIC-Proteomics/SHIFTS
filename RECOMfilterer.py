@@ -164,6 +164,8 @@ def getDiffScoreCutOff(df, popt, t_increase):
     
     # Calculate "FDR"
     df['A_Est/A_Obs'] = df['A_Est'] / df['Rank_A']
+    #df.sort_values(by=['A_Est/A_Obs'], ascending=True, inplace=True)
+    #df.reset_index(drop=True, inplace=True)
     # TODO: calculate min DiffScore that still meets the threshold for FDR
     cutoff = df[df['A_Est/A_Obs']<=t_increase].tail(1)
     DiffScoreCutOff = cutoff.iloc[0]['DiffScoreAbs']
@@ -173,8 +175,8 @@ def filterRECOM(df, dsco, a_dm, r_dm):
     '''
     Keep only RECOM IDs that pass the DiffScore threshold.
     '''
-    df['RECOMfiltered_DM'] = df.apply(lambda x: x[r_dm] if x['DiffScore']<=dsco else x[a_dm], axis = 1)
-    df['RECOMfiltered_type'] = df.apply(lambda x: 'RECOM' if x['DiffScore']<=dsco else 'COMET', axis = 1)
+    df['RECOMfiltered_DM'] = df.apply(lambda x: x[r_dm] if x['DiffScore']>=dsco else x[a_dm], axis = 1)
+    df['RECOMfiltered_type'] = df.apply(lambda x: 'RECOM' if x['DiffScore']>=dsco else 'COMET', axis = 1)
     df = df.drop(['DiffScore', 'DiffScoreAbs'], 1)
     recomized = df['RECOMfiltered_type'].value_counts()['RECOM']
     recomized_t = df[df['Label']=="Target"]['RECOMfiltered_type'].value_counts()['RECOM']
