@@ -227,8 +227,9 @@ def labelTargetDecoy(df, proteincolumn, decoyprefix):
     '''
     Label targets and decoys according to protein ID column.
     '''
-    df.insert(df.columns.get_loc(proteincolumn)+1, 'Label', np.nan)
-    df['Label'] = df.apply(lambda x: 'Decoy' if (x[proteincolumn][0:5]==decoyprefix) else 'Target', axis = 1)
+    if 'Label' not in df:
+        df.insert(df.columns.get_loc(proteincolumn)+1, 'Label', np.nan)
+    df['Label'] = df.apply(lambda x: 'Decoy' if (x[proteincolumn][0:len(decoyprefix)]==decoyprefix) else 'Target', axis = 1)
     return df
 
 def format_seq(seqdm, dm, decimal_places):
