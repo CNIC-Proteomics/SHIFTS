@@ -48,6 +48,7 @@ class PlotObject():
     def __init__(self):
 
         self.path = ""  # path to histogram
+        self.pathPeakList = "" # path to Peak List
         self.data = None    # pandas dataframe
         self.read = False   # True when dataframe is charged
         self.nPlots = 0     # number of graphs
@@ -155,8 +156,8 @@ class PlotObject():
     def getPeakListPathFromGUI(self, firstTab):
         """
         """
-        self.path = fd.askopenfilename()
-        self.getPeaks(self.path)
+        self.pathPeakList = fd.askopenfilename()
+        self.getPeaks(self.pathPeakList)
         
         msg = tk.Label(firstTab, text="File uploaded!", font=('Helvetica', 10))
         msg.place(x=208, y=325)
@@ -619,14 +620,14 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     # If user use config file, parse it
-    if args.config:
+    if args.config and not args.gui:
         config  = configparser.ConfigParser(inline_comment_prefixes='#')
         config.read(args.config)
 
-    if not args.infile:
+    if not args.infile and not args.gui:
         args.infile = config['Parameters']['infile']
     
-    if not args.peaks:
+    if not args.peaks and not args.gui:
         args.peaks = config['Parameters']['peaksList']
 
     # logging debug level. By default, info level
