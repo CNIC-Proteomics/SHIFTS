@@ -32,6 +32,13 @@ def readInfile(infile):
     df = pd.read_csv(infile, sep="\t", float_precision='high')
     return df
 
+def _extract_ApexList(file):
+    with open(file) as f:
+        data = f.read().split('\n')
+        data = [x for x in data if x.strip()]
+        data = np.array(data, dtype=np.float64)
+        return data
+        
 def labelTargetDecoy(df, proteincolumn, decoyprefix):
     '''
     Label targets and decoys according to protein ID column.
@@ -185,6 +192,26 @@ def filterRECOM(df, dsco, a_dm, r_dm, c_score, r_score):
     recomized = [recomized, recomized_t, recomized_d]
     return df, recomized
 
+def closest_peak(apex_list, delta_MH):
+    '''
+    Assign a delta_MH value to the closest apex in a list
+    '''
+    peak = min(apex_list, key = lambda x : abs(x - delta_MH))
+    return peak
+
+def reassignPeaks(ppm_max, apex_list, theo_mass, r_dm):
+    '''
+    Identify orphans and peaks
+    '''
+    peak = closest_peak(apex_list, r_dm)
+    distance = abs(peak - r_dm)
+    distance_ppm = (distance / (theo_mass + peak)) * 1e6
+    if distance_ppm <= ppm_max:
+        reassigned_peak = peak 
+    else:
+        reassigned_peak = r_dm
+    return reassigned_peak
+
 def main(args):
     '''
     Main function
@@ -199,11 +226,15 @@ def main(args):
     decoyprefix = config._sections['RECOMfilterer']['decoyprefix']
     recom_score = config._sections['RECOMfilterer']['recom_score']
     comet_score = config._sections['RECOMfilterer']['comet_score']
+    ppm_max = abs(float(config._sections['PeakAssignator']['ppm_max']))
+    col_TheoMass = config._sections['PeakAssignator']['theomh_column']
+    col_Peak = config._sections['PeakAssignator']['peak_column']
     decimal_places = int(config._sections['General']['decimal_places'])
     
-    # Read infile
+    # Read infiles
     logging.info("Reading input file...")
     df = readInfile(Path(args.infile)) # df = readInfile(Path(infile))
+    apex_list = _extract_ApexList(args.appfile)
     
     # Separate targets and decoys
     df = labelTargetDecoy(df, proteincolumn, decoyprefix) # df = labelTargetDecoy(df, 'protein', 'DECOY')
@@ -250,6 +281,13 @@ def main(args):
     logging.info("RECOMized " + str(recomized[0]) + " PSMs (" + str(round((recomized[0]/df.shape[0])*100, 2)) + " % of total PSMs)")
     logging.info("\t\t" + str(recomized[1]) + " Targets")
     logging.info("\t\t" + str(recomized[2]) + " Decoys")
+    
+    # Reassign peaks on subset of df that passed filter
+    logging.info("Reassigning peaks...")
+    df['RECOMfiltered_assignation'] = df[assigneddm]
+    df.loc[df["RECOMfiltered_type"] == 'RECOM', 'RECOMfiltered_assignation'] = df.apply(lambda x: reassignPeaks(ppm_max, apex_list, x[col_TheoMass], x['RECOMfiltered_DM']), axis = 1)
+    df.loc['RECOMfiltered_peak'] = df[col_Peak]
+    df.loc[df["RECOMfiltered_type"] == 'RECOM', 'RECOMfiltered_peak'] = 'PEAK'
 
     # Write to file
     logging.info("Writing output file...")
@@ -273,6 +311,7 @@ if __name__ == '__main__':
     defaultconfig = os.path.join(os.path.dirname(__file__), "config/SHIFTS.ini")
     
     parser.add_argument('-i',  '--infile', required=True, help='Input file')
+    parser.add_argument('-a',  '--appfile', required=True, help='File with the apex list of Mass')
     #parser.add_argument('-o',  '--output', required=True, help='Output directory')
     parser.add_argument('-c', '--config', default=defaultconfig, help='Path to custom config.ini file')
     
