@@ -23,7 +23,7 @@ import numpy as np
 pd.options.mode.chained_assignment = None  # default='warn'
 
 def readHistogram(infile):
-    df_hist = pd.read_csv(args.infile, sep="\t", float_precision='high')
+    df_hist = pd.read_csv(infile, sep="\t", float_precision='high')
     df_hist = df_hist.dropna() # Remove rows with missing values (will always have some in beginning and end)
     df_hist.reset_index(drop=True, inplace=True)
     return df_hist
