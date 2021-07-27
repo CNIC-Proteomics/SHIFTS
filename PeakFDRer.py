@@ -302,7 +302,7 @@ def main(args):
     dm_region_limit = float(config._sections['PeakFDRer']['dm_region_limit'])
     recom_data = config._sections['PeakFDRer']['recom_data']
     peak_label = config._sections['PeakAssignator']['peak_label']
-    col_Peak = config._sections['PeakAssignator']['peak_column']
+    col_Peak = config._sections['PeakFDRer']['peak_column']
     col_CalDeltaMH = config._sections['PeakAssignator']['caldeltamh_column']
     closestpeak_column = config._sections['PeakAssignator']['closestpeak_column']
     # fdr_filter = config._sections['PeakFDRer']['fdr_filter']
