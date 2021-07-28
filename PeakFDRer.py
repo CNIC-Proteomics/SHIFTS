@@ -72,7 +72,7 @@ def make_groups(df, groups):
         logging.info('Warning: ' + str(df['Experiment'].value_counts()['N/A']) + ' rows could not be assigned to an experiment!') # They will all be grouped together for FDR calculations
     return df
 
-def get_spire_FDR(df, score_column, col_Peak, xcorr_type): #TODO: we don't have xcorr_type, we have recom_data, take out column names
+def get_spire_FDR(df, score_column, col_Peak, peak_outlier_value, xcorr_type): #TODO: we don't have xcorr_type, we have recom_data, take out column names
     #This will be for the group of scans in a peak that are contained within 
     #one recom-assignated theoretical deltamass. Then, when we do peak_FDR, we
     #include these as well as the rest of the values in the peak.
@@ -81,7 +81,7 @@ def get_spire_FDR(df, score_column, col_Peak, xcorr_type): #TODO: we don't have 
     '''
     Calculate spire FDR for each spire in one bin (1 Da)
     '''
-    df['SpireFDR'] = 100
+    df['SpireFDR'] = peak_outlier_value
     df['Rank'] = -1
     df['Spire_Rank_T'] = -1
     df['Spire_Rank_D'] = -1
@@ -111,11 +111,11 @@ def get_spire_FDR(df, score_column, col_Peak, xcorr_type): #TODO: we don't have 
     df.drop(['Rank'], axis = 1, inplace = True)
     return df
 
-def get_peak_FDR(df, score_column, col_Peak, closestpeak_column, recom_data):
+def get_peak_FDR(df, score_column, col_Peak, closestpeak_column, peak_outlier_value):
     '''
     Calculate peak FDR for each peak in one bin (1 Da)
     '''
-    df['PeakFDR'] = 100
+    df['PeakFDR'] = peak_outlier_value
     df['Rank'] = -1
     df['Peak_Rank_T'] = -1
     df['Peak_Rank_D'] = -1
@@ -168,7 +168,7 @@ def get_peak_FDR(df, score_column, col_Peak, closestpeak_column, recom_data):
     df.drop(['Rank'], axis = 1, inplace = True)
     return df
 
-def get_local_FDR(df, score_column, recom_data):
+def get_local_FDR(df, score_column, peak_outlier_value):
     '''
     Calculate local FDR for one bin (1 Da)
     '''
@@ -191,7 +191,7 @@ def get_local_FDR(df, score_column, recom_data):
     df['LocalFDR'] = df['Local_Rank_D']/df['Local_Rank_T']
     return df
 
-def get_global_FDR(df, score_column, recom_data, peak_label, col_Peak, closestpeak_column, dm_column, dm_region_limit, n_workers):
+def get_global_FDR(df, score_column, peak_label, col_Peak, closestpeak_column, dm_column, dm_region_limit, peak_outlier_value, n_workers):
     '''
     Calculate global FDR
     '''
@@ -232,10 +232,11 @@ def get_global_FDR(df, score_column, recom_data, peak_label, col_Peak, closestpe
     #logging.info("Calculating Local and Peak FDR for: " + experiment_value)
     with concurrent.futures.ProcessPoolExecutor(max_workers=n_workers) as executor:        
         df = executor.map(bin_operations, list(df.groupby('LocalBin')), repeat(score_column),
-                                                                   repeat(recom_data), 
+                                                                   #repeat(recom_data), 
                                                                    repeat(peak_label),
                                                                    repeat(col_Peak),
-                                                                   repeat(closestpeak_column)) 
+                                                                   repeat(closestpeak_column),
+                                                                   repeat(peak_outlier_value)) 
     df = pd.concat(df)
     
     return df
@@ -247,7 +248,7 @@ def filtering(df, fdr_filter, target_filter): # This goes on a separate module n
         df[df['GlobalFDR'] >= fdr_filter]
     return df
 
-def bin_operations(df, score_column, recom_data, peak_label, col_Peak, closestpeak_column):
+def bin_operations(df, score_column, peak_label, col_Peak, closestpeak_column, peak_outlier_value):
     '''
     Main function that handles the operations by BIN
     '''
@@ -256,14 +257,14 @@ def bin_operations(df, score_column, recom_data, peak_label, col_Peak, closestpe
     (bin_value, df) = df[0], df[1]
     
     # calculate local FDR
-    df = get_local_FDR(df, score_column, recom_data)
+    df = get_local_FDR(df, score_column, peak_outlier_value)
     
     # calculate peak FDR
-    df = get_peak_FDR(df, score_column, col_Peak, closestpeak_column, recom_data)
+    df = get_peak_FDR(df, score_column, col_Peak, closestpeak_column, peak_outlier_value)
     
     # calculate spire FDR
     #if recom_data: #recom_data =! 0
-    #df = get_spire_FDR(df, score_column, col_Peak, recom_data)
+    #df = get_spire_FDR(df, score_column, col_Peak, peak_outlier_value, recom_data)
     
     return df
 
@@ -300,7 +301,8 @@ def main(args):
     score_column = config._sections['PeakFDRer']['score_column']
     dm_column = config._sections['PeakFDRer']['dm_column']
     dm_region_limit = float(config._sections['PeakFDRer']['dm_region_limit'])
-    recom_data = config._sections['PeakFDRer']['recom_data']
+    peak_outlier_value = float(config._sections['PeakFDRer']['peak_outlier_value'])
+    #recom_data = config._sections['PeakFDRer']['recom_data']
     peak_label = config._sections['PeakAssignator']['peak_label']
     col_Peak = config._sections['PeakFDRer']['peak_column']
     col_CalDeltaMH = config._sections['PeakAssignator']['caldeltamh_column']
@@ -345,12 +347,13 @@ def main(args):
     # df = get_global_FDR(df, score_column, recom_data)
     with concurrent.futures.ProcessPoolExecutor(max_workers=n_workers) as executor:
         df = executor.map(get_global_FDR, list(df.groupby('Experiment')), repeat(score_column),
-                                                                          repeat(recom_data),
+                                                                          #repeat(recom_data),
                                                                           repeat(peak_label),
                                                                           repeat(col_Peak),
                                                                           repeat(closestpeak_column),
                                                                           repeat(dm_column),
                                                                           repeat(dm_region_limit),
+                                                                          repeat(peak_outlier_value),
                                                                           repeat(n_workers))
     df = pd.concat(df)
     
@@ -411,9 +414,11 @@ if __name__ == '__main__':
     parser.add_argument('-o',  '--output', required=True, help='Output directory. Will be created if it does not exist')
     
     parser.add_argument('-s',  '--score_column', help='Name of column with score for FDR calculation')
+    parser.add_argument('-p',  '--peak_column', help='Name of column containing the peak/orphan labels')
+    parser.add_argument('-po', '--peak_outlier_value', help='Peak FDR value to be assigned to orphans')
     #parser.add_argument('-f',  '--fdr_filter', help='FDR value to filter by')
     #parser.add_argument('-t',  '--target_filter', help='Filter targets, 0=no 1=yes')
-    parser.add_argument('-r',  '--recom_data', help='Score for FDR calculation: 0=Xcorr, 1=cXcorr (default: %(default)s)')
+    #parser.add_argument('-r',  '--recom_data', help='Score for FDR calculation: 0=Xcorr, 1=cXcorr (default: %(default)s)')
 
     parser.add_argument('-w',  '--n_workers', type=int, default=4, help='Number of threads/n_workers (default: %(default)s)')    
     parser.add_argument('-v', dest='verbose', action='store_true', help="Increase output verbosity")
@@ -425,15 +430,21 @@ if __name__ == '__main__':
     if args.score_column is not None:
         config.set('PeakFDRer', 'score_column', str(args.score_column))
         config.set('Logging', 'create_ini', '1')
+    if args.peak_column is not None:
+        config.set('PeakFDRer', 'peak_column', str(args.peak_column))
+        config.set('Logging', 'create_ini', '1')
+    if args.peak_outlier_value is not None:
+        config.set('PeakFDRer', 'peak_outlier_value', str(args.peak_outlier_value))
+        config.set('Logging', 'create_ini', '1')
     # if args.fdr_filter is not None:
     #     config.set('PeakFDRer', 'fdr_filter', str(args.fdr_filter))
     #     config.set('Logging', 'create_ini', '1')
     # if args.target_filter is not None:
     #     config.set('PeakFDRer', 'target_filter', str(args.target_filter))
     #     config.set('Logging', 'create_ini', '1')
-    if args.recom_data is not None:
-        config.set('PeakFDRer', 'recom_data', str(args.recom_data))
-        config.set('Logging', 'create_ini', '1')
+    # if args.recom_data is not None:
+    #     config.set('PeakFDRer', 'recom_data', str(args.recom_data))
+    #     config.set('Logging', 'create_ini', '1')
     # if something is changed, write a copy of ini
     if config.getint('Logging', 'create_ini') == 1:
         with open(os.path.dirname(args.infile) + '/SHIFTS.ini', 'w') as newconfig:
