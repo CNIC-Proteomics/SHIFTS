@@ -1,0 +1,6 @@
+# Python 3.8.10
+
+$MANAGER=Scripts/pip
+install --no-warn-script-location	numpy==1.20.3
+install --no-warn-script-location	scipy==1.6.2
+install --no-warn-script-location	pandas==1.3.1
