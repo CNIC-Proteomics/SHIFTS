@@ -379,7 +379,7 @@ def main(args):
     logging.info("Write output files")
     dfs = df.groupby('Experiment')
     for group in list(dfs.groups.keys()):
-        group_path = args.output + group
+        group_path = os.path.join(args.output, group)
         if not os.path.exists(group_path):
             os.mkdir(group_path)
         outfile = os.path.join(group_path, args.infile.split('\\')[-1].split('/')[-1][:-4] + '_' + group + '_FDR.txt')
