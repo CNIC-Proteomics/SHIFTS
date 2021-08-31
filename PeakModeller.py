@@ -136,6 +136,7 @@ def first_derivative(bins_df, points, spoints):
     else: #no smoothing
         j = 1
     bins_df['slope1'] = None
+    ### TODO: can we make this faster? #######################################
     for i in range(points*j, len(bins_df)-points*j):
         #working_bin = bins_df.loc[i]
         bin_subset = bins_df[i-points:i+points+1]
@@ -143,6 +144,7 @@ def first_derivative(bins_df, points, spoints):
             bins_df.loc[i, 'slope1'] = linear_regression(bin_subset, True, False)
         else:
             bins_df.loc[i, 'slope1'] = linear_regression(bin_subset, False, False)[0] #slope only
+    ##########################################################################
     bins_df[['slope1']] = bins_df[['slope1']].apply(pd.to_numeric)
     return bins_df
 
@@ -179,6 +181,7 @@ def main(args):
     with open(args.infile) as f:
         infiles = f.readlines()
     infiles = [x.strip() for x in infiles] # remove whitespace
+    infiles = list(filter(None, infiles)) # remove empty lines
     
     logging.info("Concat input files...")
     with concurrent.futures.ProcessPoolExecutor(max_workers=args.n_workers) as executor:            
