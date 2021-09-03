@@ -197,7 +197,7 @@ def get_global_FDR(df, score_column, peak_label, col_Peak, closestpeak_column, d
     '''
     # get the EXPERIMENT value from the input tuple df=(experiment,df)
     (experiment_value, df) = df[0], df[1]
-    print("\t\t\t\t\tCalculating Global/Local/Peak FDR for: " + experiment_value)
+    print("\t\t\t\t\tCalculating Global FDR for: " + experiment_value)
     # sort by score
     # if recom_data == 0: # by Comet Xcorr
     #     df.sort_values(by=['Xcor', 'Label'], inplace=True, ascending=False)
@@ -227,17 +227,6 @@ def get_global_FDR(df, score_column, peak_label, col_Peak, closestpeak_column, d
         each_df['GlobalFDR'] = each_df['Global_Rank_D']/each_df['Global_Rank_T']
     
     df = pd.concat([df_below, df_above])
-    
-    # calculate local and peak FDR
-    #logging.info("Calculating Local and Peak FDR for: " + experiment_value)
-    with concurrent.futures.ProcessPoolExecutor(max_workers=n_workers) as executor:        
-        df = executor.map(bin_operations, list(df.groupby('LocalBin')), repeat(score_column),
-                                                                   #repeat(recom_data), 
-                                                                   repeat(peak_label),
-                                                                   repeat(col_Peak),
-                                                                   repeat(closestpeak_column),
-                                                                   repeat(peak_outlier_value)) 
-    df = pd.concat(df)
     
     return df
 
@@ -355,6 +344,16 @@ def main(args):
                                                                           repeat(dm_region_limit),
                                                                           repeat(peak_outlier_value),
                                                                           repeat(n_workers))
+    df = pd.concat(df)
+    
+    logging.info("Calculating Local and Peak FDR:")
+    with concurrent.futures.ProcessPoolExecutor(max_workers=n_workers) as executor:        
+        df = executor.map(bin_operations, list(df.groupby('LocalBin')), repeat(score_column),
+                                                                   #repeat(recom_data), 
+                                                                   repeat(peak_label),
+                                                                   repeat(col_Peak),
+                                                                   repeat(closestpeak_column),
+                                                                   repeat(peak_outlier_value)) 
     df = pd.concat(df)
     
     logging.info("Sort by calibrated DeltaMass")
