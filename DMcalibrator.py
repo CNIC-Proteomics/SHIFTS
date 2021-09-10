@@ -298,6 +298,10 @@ def main(args):
                                  proteincolumn,
                                  abscolumn,
                                  decoyprefix)
+    if len(df_filtered) == 0:
+        logging.info("ERROR: Cannot calibrate without a filtered dataset. Please lower the score or ppm thresholds and try again.")
+        sys.exit()
+
     # Use filtered set to calculate systematic error
     sys_error, alpha = getSysError(df_filtered, mzcolumn, 0)
     # Use systematic error to correct infile
