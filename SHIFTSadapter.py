@@ -25,7 +25,7 @@ def main(args):
     logging.info('Reading input file')
     with open(args.infile) as f:
         first_line = f.readline().strip().split('\t')
-    df = pd.read_csv(args.infile, sep='\t', skiprows=1, float_precision='high', low_memory=False)
+    df = pd.read_csv(args.infile, sep='\t', skiprows=1, float_precision='high', low_memory=False, index_col=False)
     
     logging.info('Search Engine: ' + first_line[0])
     logging.info('Raw: ' + first_line[1])
