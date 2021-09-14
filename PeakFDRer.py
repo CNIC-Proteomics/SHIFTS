@@ -69,7 +69,7 @@ def make_groups(df, groups):
         group_dict[currentid].append(currentvalue)
     df['Experiment'] = np.vectorize(_match_file)(group_dict, df['Filename'])
     if 'N/A' in df['Experiment'].unique():
-        logging.info('Warning: ' + str(df['Experiment'].value_counts()['N/A']) + ' rows could not be assigned to an experiment!') # They will all be grouped together for FDR calculations
+        logging.info('Warning: ' + str(df['Experiment'].value_counts()['N/A']) + ' rows could not be assigned to an experiment! They will still be used to calculate Local and Peak FDR.') # They will all be grouped together for FDR calculations
     return df
 
 def get_spire_FDR(df, score_column, col_Peak, peak_outlier_value, xcorr_type): #TODO: we don't have xcorr_type, we have recom_data, take out column names
@@ -379,6 +379,8 @@ def main(args):
     dfs = df.groupby('Experiment')
     for group in list(dfs.groups.keys()):
         group_path = os.path.join(args.output, group)
+        if group == 'N/A':
+            group_path = os.path.join(args.output, 'Unassigned')
         if not os.path.exists(group_path):
             os.mkdir(group_path)
         outfile = os.path.join(group_path, args.infile.split('\\')[-1].split('/')[-1][:-4] + '_' + group + '_FDR.txt')
