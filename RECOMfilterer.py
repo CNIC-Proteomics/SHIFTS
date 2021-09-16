@@ -286,12 +286,12 @@ if __name__ == '__main__':
     # parse config
     config = configparser.ConfigParser(inline_comment_prefixes='#')
     config.read(args.config)
-    if args.decoy is not None:
-        config.set('RECOMfilterer', 'decoy_threshold', str(args.percentage))
-        config.set('Logging', 'create_ini', '1')
-    if args.target is not None:
-        config.set('RECOMfilterer', 'target_threshold', str(args.cometcolumn))
-        config.set('Logging', 'create_ini', '1')
+    # if args.decoy is not None:
+    #     config.set('RECOMfilterer', 'decoy_threshold', str(args.percentage))
+    #     config.set('Logging', 'create_ini', '1')
+    # if args.target is not None:
+    #     config.set('RECOMfilterer', 'target_threshold', str(args.cometcolumn))
+    #     config.set('Logging', 'create_ini', '1')
     if args.increase is not None:
         config.set('RECOMfilterer', 'increase_threshold', str(args.recomcolumn))
         config.set('Logging', 'create_ini', '1')
