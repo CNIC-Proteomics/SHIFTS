@@ -29,7 +29,7 @@ def readInfile(infile):
     '''    
     Read input file to dataframe.
     '''
-    df = pd.read_csv(infile, sep="\t", float_precision='high')
+    df = pd.read_csv(infile, sep="\t", float_precision='high', low_memory=False)
     return df
 
 def labelTargetDecoy(df, proteincolumn, decoyprefix):
@@ -190,8 +190,8 @@ def main(args):
     Main function
     '''
     # Variables
-    t_decoy = float(config._sections['RECOMfilterer']['decoy_threshold'])
-    t_target = float(config._sections['RECOMfilterer']['target_threshold'])
+    #t_decoy = float(config._sections['RECOMfilterer']['decoy_threshold'])
+    #t_target = float(config._sections['RECOMfilterer']['target_threshold'])
     t_increase = float(config._sections['RECOMfilterer']['increase_threshold'])
     proteincolumn = config._sections['RECOMfilterer']['protein_column']
     assigneddm = config._sections['RECOMfilterer']['assigned_deltamass']
@@ -215,9 +215,9 @@ def main(args):
     logging.info("Targets: " + str(targets.shape[0]) + " | Decoys: " + str(decoys.shape[0]))
     
     # True decoys
-    true_decoys = decoys[decoys[recom_score]<=t_decoy] # TODO: are we filtering by Recom or Comet score?
-    true_decoys = true_decoys[true_decoys['DiffType']!='N'] # Don't use values close to 0 or not rescored by Recom
-    logging.info("Decoys <= " + str(t_decoy) + ": " + str(true_decoys.shape[0])) # true_decoys = decoys[decoys['Closest_Xcorr']<=1]
+    #true_decoys = decoys[decoys[comet_score]<=t_decoy] # TODO: are we filtering by Recom or Comet score?
+    true_decoys = decoys[decoys['DiffType']!='N'] # Don't use values close to 0 or not rescored by Recom
+    #logging.info("Decoys <= " + str(t_decoy) + ": " + str(true_decoys.shape[0])) # true_decoys = decoys[decoys['Closest_Xcorr']<=1]
     true_decoys.sort_values(by=['DiffScoreAbs'], ascending=False, inplace=True) # Sort by descending abs. DiffScore
     true_decoys.reset_index(drop=True, inplace=True)
     # Make model
@@ -225,18 +225,18 @@ def main(args):
     logging.info("Model parameters for Y = a+b*exp(-c*X): a = " + str(round(popt[0], decimal_places)) + " b = " + str(round(popt[1], decimal_places)) + " c = " + str(round(popt[2], decimal_places)))
     
     # Fake targets
-    fake_targets = targets[targets[recom_score]<=t_decoy]
-    fake_targets = fake_targets[fake_targets['DiffType']!='N'] # Don't use values close to 0 or not rescored by Recom
-    logging.info("Targets <= " + str(t_decoy) + ": " + str(fake_targets.shape[0])) # true_decoys = decoys[decoys['Closest_Xcorr']<=1]
-    fake_targets.sort_values(by=['DiffScoreAbs'], ascending=False, inplace=True) # Sort by descending abs. DiffScore
-    fake_targets.reset_index(drop=True, inplace=True)
+    #fake_targets = targets[targets[comet_score]<=t_decoy]
+    #fake_targets = fake_targets[fake_targets['DiffType']!='N'] # Don't use values close to 0 or not rescored by Recom
+    #logging.info("Targets <= " + str(t_decoy) + ": " + str(fake_targets.shape[0])) # true_decoys = decoys[decoys['Closest_Xcorr']<=1]
+    #fake_targets.sort_values(by=['DiffScoreAbs'], ascending=False, inplace=True) # Sort by descending abs. DiffScore
+    #fake_targets.reset_index(drop=True, inplace=True)
     # Check model
-    checkTargets(fake_targets, popt)
+    #checkTargets(fake_targets, popt)
     
     # True targets
-    true_targets = targets[targets[recom_score]>=t_target]
-    true_targets = true_targets[true_targets['DiffType']!='N'] # Don't use values close to 0 or not rescored by Recom
-    logging.info("Targets >= " + str(t_target) + ": " + str(true_targets.shape[0]))
+    #true_targets = targets[targets[comet_score]>=t_target]
+    true_targets = targets[targets['DiffType']!='N'] # Don't use values close to 0 or not rescored by Recom
+    #logging.info("Targets >= " + str(t_target) + ": " + str(true_targets.shape[0]))
     true_targets.sort_values(by=['DiffScoreAbs'], ascending=False, inplace=True) # Sort by descending abs. DiffScore
     true_targets.reset_index(drop=True, inplace=True)
     # Apply model
@@ -276,8 +276,8 @@ if __name__ == '__main__':
     #parser.add_argument('-o',  '--output', required=True, help='Output directory')
     parser.add_argument('-c', '--config', default=defaultconfig, help='Path to custom config.ini file')
     
-    parser.add_argument('-d', '--decoy', help='Decoy threshold')
-    parser.add_argument('-t', '--target', help='Target threshold')
+    #parser.add_argument('-d', '--decoy', help='Decoy threshold')
+    #parser.add_argument('-t', '--target', help='Target threshold')
     parser.add_argument('-s', '--increase', help='Significant increase threshold')
 
     parser.add_argument('-v', dest='verbose', action='store_true', help="Increase output verbosity")
