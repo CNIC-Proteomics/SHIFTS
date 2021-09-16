@@ -157,7 +157,7 @@ def getDiffScoreCutOff(df, popt, t_increase):
     plt1.plot(df['DiffScoreAbs'].to_numpy(), df['A_Est'].to_numpy(), '-', label="Est. A")
     plt1.set_xlabel('DiffScoreAbs')
     plt1.set_ylabel('Rank')
-    plt1.set_title("Rank D and A vs DiffScore (High-scoring targets)")
+    plt1.set_title("Rank D and A vs DiffScore (Targets)")
     plt1.legend()
     #fig1.savefig(os.path.join(Path(args.output), Path(args.infile).stem + '_Rank_vs_DiffScore_Targets_Above_Threshold.png'))
     fig1.savefig(args.infile[:-4] + '_Rank_vs_DiffScore_Targets_Above_Threshold.png')
