@@ -157,6 +157,7 @@ def smoothing(bins_df, spoints):
     bins_df['smooth_count'] = bins_df.apply(lambda x: None if np.isnan(x['intercept'])
                                                            else x['intercept'] + (x['working_slope']*x['midpoint']), axis = 1)
     bins_df[["smooth_count"]] = bins_df[["smooth_count"]].apply(pd.to_numeric)
+    bins_df = bins_df.drop(['i', 'working_slope', 'intercept'], axis=1)
     return bins_df
 
 def first_derivative(bins_df, points, spoints):
@@ -202,7 +203,7 @@ def first_derivative(bins_df, points, spoints):
                                             chunksize=1000), total=len(bin_subsets)))
     firsts = pd.DataFrame(firsts, columns=['i', 'slope1'])
     bins_df = pd.merge(bins_df, firsts, left_index=True, right_on='i', how='outer').replace({np.nan: None})
-    bins_df.drop('i', axis=1, inplace=True)
+    bins_df = bins_df.drop('i', axis=1)
     bins_df.reset_index(drop=True, inplace=True)
     #bins_df[['slope1']] = bins_df[['slope1']].apply(pd.to_numeric)
     return bins_df
@@ -228,7 +229,7 @@ def second_derivative(bins_df, points, spoints):
                                         chunksize=1000), total=len(bin_subsets)))
     seconds = pd.DataFrame(seconds, columns=['i', 'slope2'])
     bins_df = pd.merge(bins_df, seconds, left_index=True, right_on='i', how='outer').replace({np.nan: None})
-    bins_df.drop('i', axis=1, inplace=True)
+    bins_df = bins_df.drop('i', axis=1)
     bins_df.reset_index(drop=True, inplace=True)
     #bins_df[['slope2']] = bins_df[['slope2']].apply(pd.to_numeric)           
     return bins_df
