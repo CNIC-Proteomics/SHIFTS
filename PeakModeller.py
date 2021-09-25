@@ -20,6 +20,7 @@ import logging
 import pandas as pd
 import numpy as np
 import concurrent.futures
+from tqdm import tqdm
 pd.options.mode.chained_assignment = None  # default='warn'
 
 #infile = r"C:\Users\Andrea\Desktop\SHIFTS-4\testing\cXcorr_Len_Rank_Results_TargetData_Calibration.txt"
@@ -106,17 +107,41 @@ def linear_regression(bin_subset, smoothed, second_derivative):
     else:
         return working_slope, intercept
 
+def _parallelSmoothing(list_subset):
+    bin_subset = list_subset[0]
+    pos = list_subset[1]
+    working_slope, intercept = linear_regression(bin_subset, False, False)
+    #smoothed = pd.Series([pos, working_slope, intercept],
+                         #index=['i', 'working_slope', 'intercept'])
+    smoothed = [pos, working_slope, intercept]
+    return smoothed
+
 def smoothing(bins_df, spoints):
     '''
     Calculate the slope (first derivative) for each bin. Calculate new smoothed
     value for the midpoint using the linear regression line.
     '''
     bins_df['smooth_count'] = None
+    # for i in range(spoints, len(bins_df)-spoints):
+    #     #working_bin = bins_df.loc[i]
+    #     bin_subset = bins_df[i-spoints:i+spoints+1]
+    #     working_slope, intercept = linear_regression(bin_subset, False, False)
+    #     bins_df.loc[i, 'smooth_count'] = intercept + (working_slope*bins_df.loc[i, 'midpoint'])
+    bin_subsets = []
     for i in range(spoints, len(bins_df)-spoints):
-        #working_bin = bins_df.loc[i]
         bin_subset = bins_df[i-spoints:i+spoints+1]
-        working_slope, intercept = linear_regression(bin_subset, False, False)
-        bins_df.loc[i, 'smooth_count'] = intercept + (working_slope*bins_df.loc[i, 'midpoint'])
+        bin_subsets.append([bin_subset, i])
+    logging.info("\tSmoothing...")
+    with concurrent.futures.ProcessPoolExecutor(max_workers=args.n_workers) as executor:   
+        intercepts = list(tqdm(executor.map(_parallelSmoothing, bin_subsets, chunksize=1000),
+                               total=len(bin_subsets)))
+    intercepts = pd.DataFrame(intercepts, columns=['i', 'working_slope', 'intercept'])
+    # TODO: add to bins_df.loc
+    bins_df = pd.merge(bins_df, intercepts, left_index=True, right_on='i', how='outer')
+    bins_df.reset_index(drop=True, inplace=True)
+    #bins_df['smooth_count'] = bins_df['intercept'] + (bins_df['working_slope']*bins_df['midpoint'])
+    bins_df['smooth_count'] = bins_df.apply(lambda x: None if np.isnan(x['intercept'])
+                                                           else x['intercept'] + (x['working_slope']*x['midpoint']), axis = 1)
     bins_df[["smooth_count"]] = bins_df[["smooth_count"]].apply(pd.to_numeric)
     return bins_df
 
