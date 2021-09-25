@@ -21,6 +21,7 @@ import pandas as pd
 import numpy as np
 import concurrent.futures
 from tqdm import tqdm
+from itertools import repeat
 pd.options.mode.chained_assignment = None  # default='warn'
 
 #infile = r"C:\Users\Andrea\Desktop\SHIFTS-4\testing\cXcorr_Len_Rank_Results_TargetData_Calibration.txt"
@@ -81,6 +82,19 @@ def generate_histogram(df, bin_width):
     #bins_df['bin'][9].left #access value
     
     return df, bins_df
+
+def _parallelRegression(list_subset, smoothed, second_derivative):
+    '''
+    Calculate the linear regression line and return the slope
+    (and the intercept, if called with smooth == True).
+    '''
+    bin_subset = list_subset[0]
+    pos = list_subset[1]
+    result = linear_regression(bin_subset, smoothed, second_derivative)
+    if result is tuple:
+        result = linear_regression(bin_subset, smoothed, second_derivative)[0]
+    result = [pos, result]
+    return result
 
 def linear_regression(bin_subset, smoothed, second_derivative):
     '''
@@ -160,17 +174,37 @@ def first_derivative(bins_df, points, spoints):
         j = 2
     else: #no smoothing
         j = 1
-    bins_df['slope1'] = None
+    logging.info("\tFirst derivative...")
+    #bins_df['slope1'] = None
     ### TODO: can we make this faster? #######################################
+    # for i in range(points*j, len(bins_df)-points*j):
+    #     #working_bin = bins_df.loc[i]
+    #     bin_subset = bins_df[i-points:i+points+1]
+    #     if spoints > 0:
+    #         bins_df.loc[i, 'slope1'] = linear_regression(bin_subset, True, False)
+    #     else:
+    #         bins_df.loc[i, 'slope1'] = linear_regression(bin_subset, False, False)[0] #slope only
+    # ##########################################################################
+    bin_subsets = []
     for i in range(points*j, len(bins_df)-points*j):
-        #working_bin = bins_df.loc[i]
         bin_subset = bins_df[i-points:i+points+1]
-        if spoints > 0:
-            bins_df.loc[i, 'slope1'] = linear_regression(bin_subset, True, False)
-        else:
-            bins_df.loc[i, 'slope1'] = linear_regression(bin_subset, False, False)[0] #slope only
-    ##########################################################################
-    bins_df[['slope1']] = bins_df[['slope1']].apply(pd.to_numeric)
+        bin_subsets.append([bin_subset, i])
+    
+    if spoints > 0:
+        with concurrent.futures.ProcessPoolExecutor(max_workers=args.n_workers) as executor:   
+            firsts = list(tqdm(executor.map(_parallelRegression,
+                                            bin_subsets, repeat(True), repeat(False),
+                                            chunksize=1000), total=len(bin_subsets)))
+    else:
+        with concurrent.futures.ProcessPoolExecutor(max_workers=args.n_workers) as executor:   
+            firsts = list(tqdm(executor.map(_parallelRegression,
+                                            bin_subsets, repeat(False), repeat(False),
+                                            chunksize=1000), total=len(bin_subsets)))
+    firsts = pd.DataFrame(firsts, columns=['i', 'slope1'])
+    bins_df = pd.merge(bins_df, firsts, left_index=True, right_on='i', how='outer').replace({np.nan: None})
+    bins_df.drop('i', axis=1, inplace=True)
+    bins_df.reset_index(drop=True, inplace=True)
+    #bins_df[['slope1']] = bins_df[['slope1']].apply(pd.to_numeric)
     return bins_df
 
 def second_derivative(bins_df, points, spoints):
@@ -181,13 +215,23 @@ def second_derivative(bins_df, points, spoints):
         j = 3
     else: #not smoothed
         j = 2
-    bins_df['slope2'] = None
+    logging.info("\tSecond derivative...")
+    #bins_df['slope2'] = None
+    bin_subsets = []
     for i in range(points*j, len(bins_df)-points*j):
         bin_subset = bins_df[i-points:i+points+1]
-        bins_df.loc[i, 'slope2'] = linear_regression(bin_subset, False, True)
-    bins_df[['slope2']] = bins_df[['slope2']].apply(pd.to_numeric)           
+        bin_subsets.append([bin_subset, i])
+        #bins_df.loc[i, 'slope2'] = linear_regression(bin_subset, False, True)
+    with concurrent.futures.ProcessPoolExecutor(max_workers=args.n_workers) as executor:
+        seconds = list(tqdm(executor.map(_parallelRegression,
+                                        bin_subsets, repeat(False), repeat(True),
+                                        chunksize=1000), total=len(bin_subsets)))
+    seconds = pd.DataFrame(seconds, columns=['i', 'slope2'])
+    bins_df = pd.merge(bins_df, seconds, left_index=True, right_on='i', how='outer').replace({np.nan: None})
+    bins_df.drop('i', axis=1, inplace=True)
+    bins_df.reset_index(drop=True, inplace=True)
+    #bins_df[['slope2']] = bins_df[['slope2']].apply(pd.to_numeric)           
     return bins_df
-
 #################
 # Main function #
 #################
