@@ -6,7 +6,7 @@
 __author__ = "Jose Rodriguez"
 __credits__ = ["Jose Rodriguez", "Andrea Laguillo Gómez", "Jesus Vazquez"]
 __license__ = "Creative Commons Attribution-NonCommercial-NoDerivs 4.0 Unported License https://creativecommons.org/licenses/by-nc-nd/4.0/"
-__version__ = "0.0.1"
+__version__ = "0.3.0"
 __maintainer__ = "Jose Rodriguez"
 __email__ = "jmrodriguezc@cnic.es;andrea.laguillo@cnic.es"
 __status__ = "Development"
