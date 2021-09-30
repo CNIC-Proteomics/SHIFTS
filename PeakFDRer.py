@@ -296,6 +296,7 @@ def main(args):
     col_Peak = config._sections['PeakFDRer']['peak_column']
     col_CalDeltaMH = config._sections['PeakAssignator']['caldeltamh_column']
     closestpeak_column = config._sections['PeakAssignator']['closestpeak_column']
+    separate_output = config.getboolean('PeakFDRer', 'separate_output')
     # fdr_filter = config._sections['PeakFDRer']['fdr_filter']
     # target_filter = config._sections['PeakFDRer']['target_filter']
     
@@ -375,18 +376,23 @@ def main(args):
     df['Filename'] = df.apply(lambda x: x['Filename'].split('\\')[-1].split('/')[-1][:-4], axis=1)
     # Split in folders by Experiment
         
-    logging.info("Write output files")
-    dfs = df.groupby('Experiment')
-    for group in list(dfs.groups.keys()):
-        group_path = os.path.join(args.output, group)
-        if group == 'N/A':
-            group_path = os.path.join(args.output, 'Unassigned')
-        if not os.path.exists(group_path):
-            os.mkdir(group_path)
-        outfile = os.path.join(group_path, args.infile.split('\\')[-1].split('/')[-1][:-4] + '_' + group + '_FDR.txt')
-        group_df = dfs.get_group(group)
-        group_df.to_csv(outfile, index=False, sep='\t', encoding='utf-8')
-        logging.info('\t' + group + ': ' + str(outfile))
+    if separate_output:
+        logging.info("Write output files:")
+        dfs = df.groupby('Experiment')
+        for group in list(dfs.groups.keys()):
+            group_path = os.path.join(args.output, group)
+            if group == 'N/A':
+                group_path = os.path.join(args.output, 'Unassigned')
+            if not os.path.exists(group_path):
+                os.mkdir(group_path)
+            outfile = os.path.join(group_path, args.infile.split('\\')[-1].split('/')[-1][:-4] + '_' + group + '_FDR.txt')
+            group_df = dfs.get_group(group)
+            group_df.to_csv(outfile, index=False, sep='\t', encoding='utf-8')
+            logging.info('\t' + group + ': ' + str(outfile))
+    else:
+        logging.info("Write output file")
+        outfile = os.path.join(args.output, args.infile.split('\\')[-1].split('/')[-1][:-4] + '_FDR.txt')
+        df.to_csv(outfile, index=False, sep='\t', encoding='utf-8')
     
     #outfile = args.infile[:-4] + '_FDR.txt'
     #df.to_csv(outfile, index=False, sep='\t', encoding='utf-8')
