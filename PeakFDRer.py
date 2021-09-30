@@ -34,11 +34,15 @@ def read_experiments(experiments_table):
     '''
     Read input file containing groups and filenames in tab-separated format.
     '''
-    df = pd.read_csv(experiments_table, sep="\t", names=['Experiment', 'Filename'])
+    df = pd.read_csv(experiments_table, sep="\t", names=['Batch', 'Experiment', 'Filename'])
+    df['Batch'] = df['Batch'].astype('string')
+    df['Batch'] = df['Batch'].str.strip()
     df['Experiment'] = df['Experiment'].astype('string')
+    df['Experiment'] = df['Experiment'].str.strip()
     df['Filename'] = df['Filename'].astype('string')
+    df['Filename'] = df['Filename'].str.strip()
     if df['Filename'].duplicated().any(): # Check no repeats
-        sys.exit("Experiments table contains repeat values in the filename column")
+        sys.exit('ERROR: Experiments table contains repeat values in the filename column')
     #exp_groups = exp_df.groupby(by = exp_df.columns[0], axis = 0)
     #for position, exp in exp_groups:
         #TODO: read filepath or everything in folder
@@ -46,7 +50,7 @@ def read_experiments(experiments_table):
 
 def make_groups(df, groups):
     '''
-    Add group column to input file with the peak assignation.
+    Add Batch and Experiment columns to input file with the peak assignation.
     '''
     def _match_file(groups, filename):
         # if filename in groups['Filename'].unique():
@@ -60,14 +64,16 @@ def make_groups(df, groups):
             group = 'N/A'
         return group
     df['Experiment'] = 'N/A'
+    df['Batch'] = 'N/A'
     #df['Experiment'] = df.apply(lambda x: _match_file(groups, x['Filename']), axis = 1)
     group_dict = {}
     for x in range(len(groups)):
-        currentid = groups.iloc[x,1]
-        currentvalue = groups.iloc[x,0]
+        currentid = groups.iloc[x,2]
+        currentvalue = groups.iloc[x,1], groups.iloc[x,0]
         group_dict.setdefault(currentid, [])
         group_dict[currentid].append(currentvalue)
-    df['Experiment'] = np.vectorize(_match_file)(group_dict, df['Filename'])
+    df['Experiment'] = np.vectorize(_match_file)(group_dict, df['Filename'])[0]
+    df['Batch'] = np.vectorize(_match_file)(group_dict, df['Filename'])[1]
     if 'N/A' in df['Experiment'].unique():
         logging.info('Warning: ' + str(df['Experiment'].value_counts()['N/A']) + ' rows could not be assigned to an experiment! They will still be used to calculate Local and Peak FDR.') # They will all be grouped together for FDR calculations
     return df
@@ -296,7 +302,6 @@ def main(args):
     col_Peak = config._sections['PeakFDRer']['peak_column']
     col_CalDeltaMH = config._sections['PeakAssignator']['caldeltamh_column']
     closestpeak_column = config._sections['PeakAssignator']['closestpeak_column']
-    separate_output = config.getboolean('PeakFDRer', 'separate_output')
     # fdr_filter = config._sections['PeakFDRer']['fdr_filter']
     # target_filter = config._sections['PeakFDRer']['target_filter']
     
@@ -347,7 +352,7 @@ def main(args):
                                                                           repeat(n_workers))
     df = pd.concat(df)
     
-    logging.info("Calculating Local and Peak FDR:")
+    logging.info("Calculating Local and Peak FDR")
     with concurrent.futures.ProcessPoolExecutor(max_workers=n_workers) as executor:        
         df = executor.map(bin_operations, list(df.groupby('LocalBin')), repeat(score_column),
                                                                    #repeat(recom_data), 
@@ -375,24 +380,22 @@ def main(args):
     # Clean filename
     df['Filename'] = df.apply(lambda x: x['Filename'].split('\\')[-1].split('/')[-1][:-4], axis=1)
     # Split in folders by Experiment
-        
-    if separate_output:
-        logging.info("Write output files:")
-        dfs = df.groupby('Experiment')
-        for group in list(dfs.groups.keys()):
-            group_path = os.path.join(args.output, group)
-            if group == 'N/A':
-                group_path = os.path.join(args.output, 'Unassigned')
-            if not os.path.exists(group_path):
-                os.mkdir(group_path)
+
+    logging.info("Write output files:")
+    dfs = df.groupby('Batch')
+    for group in list(dfs.groups.keys()):
+        group_path = os.path.join(args.output, group)
+        if group == 'N/A':
+            group_path = os.path.join(args.output, 'Unassigned')
+        if not os.path.exists(group_path):
+            os.mkdir(group_path)
+        if group == 'N/A':
+            outfile = os.path.join(group_path, args.infile.split('\\')[-1].split('/')[-1][:-4] + '_Unassigned_FDR.txt')
+        else:
             outfile = os.path.join(group_path, args.infile.split('\\')[-1].split('/')[-1][:-4] + '_' + group + '_FDR.txt')
-            group_df = dfs.get_group(group)
-            group_df.to_csv(outfile, index=False, sep='\t', encoding='utf-8')
-            logging.info('\t' + group + ': ' + str(outfile))
-    else:
-        logging.info("Write output file")
-        outfile = os.path.join(args.output, args.infile.split('\\')[-1].split('/')[-1][:-4] + '_FDR.txt')
-        df.to_csv(outfile, index=False, sep='\t', encoding='utf-8')
+        group_df = dfs.get_group(group)
+        group_df.to_csv(outfile, index=False, sep='\t', encoding='utf-8')
+        logging.info('\t' + group + ': ' + str(outfile))
     
     #outfile = args.infile[:-4] + '_FDR.txt'
     #df.to_csv(outfile, index=False, sep='\t', encoding='utf-8')
