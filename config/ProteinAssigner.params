@@ -1,0 +1,42 @@
+#####General options#####
+
+num_threads=4
+
+####Input Files####
+
+Fasta_path=D:\CNIC\Proteomica\DataAnalysis\Assign_Peptide_to_Protein\mouse_UP000000589_202007_sw.target-decoy.fasta
+PeptideFile_path=D:\CNIC\Proteomica\DataAnalysis\Assign_Peptide_to_Protein\comet_results\*.txt
+
+#####Output files#####
+
+Fasta_digested_outputfile=1			# 0=No ,1=Yes Write a FastaDigested file. 
+Fasta_digested_suffix=				# suffix to add to Fasta files names, if empty default to "digested" (optional) 
+
+PeptideFile_outputfile=1			# 0=No ,1=Yes Write PeptideFile with additional columns added.
+Column_names_row=2				# Number of the row with columns names, if empty default to "1" (optional)
+PeptideFile_suffix=FD				# PeptideFile suffix to add to new files names, if empty it will overwrite original file (optional) 
+
+#####Fasta_digestor_params#####
+
+decoy_tag=DECOY_				# Label used in the Fasta file to assing decoy proteins, if empty no decoys are filtered (optional)
+Isoleucine_Leucine_aa_Symbol = L 		# Change isolecuine and leucine to given Symbol, if empty remain as in FastaFile.(optional)
+enzyme_name =trypsin 				# Name of enzyme to add as suffix to the digested fasta.(optional)
+enzyme_cutafter = KR				# Residues after which the enzyme cuts.
+enzyme_butnotafter = P				# Residues that the enzyme will not cut before.
+allowed_missed_cleavage = 0			# Allowed number of missed cleavages per peptide.
+digest_min_length = 4				# Minimum length of peptides to be generated during in-silico digestion.
+digest_max_length = 50				# Maximum length of peptides to be generated during in-silico digestion.
+
+#####Columns_Join_params#####
+
+Peptide_column_name=plain_peptide 				# Name of the peptide column in the Peptidefile .
+add_column_MissCleavage=0			# 0=No ,1=Yes Number of misscleavage of the peptide
+add_column_ProteinsNumber=1			# 0=No ,1=Yes Number of proteins containing the peptide
+add_column_Proteotypic=	1			# 0=No ,1=Yes Label for peptide if appears only in 1 protein
+add_column_UniProtIDs=1				# 0=No ,1=Yes List of protein UniprotID  that contains the peptide separated by ";"
+add_column_Proteins=1				# 0=No ,1=Yes List of protein Fasta header that contains the peptide separated by ";"
+add_column_ProteinsLength=0			# 0=No ,1=Yes List of protein length that contains the peptide separated by ";"
+add_column_NpMiss=0				# 0=No ,1=Yes List of Number of digested peptides by misscleavage allowance for each protein separated by ";" 
+add_column_NpTotal=0				# 0=No ,1=Yes List of total number of digested peptides for each protein separated by ";" 
+add_column_PeptidePos=	0			# 0=No ,1=Yes List of peptide position in proteins separated by ";"
+add_column_PrevNextaa=	0			# 0=No ,1=Yes List of proteins length that contains the peptide separated by ";"
