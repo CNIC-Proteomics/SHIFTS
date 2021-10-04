@@ -22,6 +22,7 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import scipy.optimize
 import sys
+pd.options.mode.chained_assignment = None  # default='warn'
 
 #test file: r'D:\CNIC\asdf\RECOMFilterer\TMT2_HDL_ALL.txt'
 
