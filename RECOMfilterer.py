@@ -172,7 +172,7 @@ def getDiffScoreCutOff(df, popt, t_increase):
     DiffScoreCutOff = cutoff.iloc[0]['DiffScoreAbs']
     return DiffScoreCutOff
 
-def filterRECOM(df, dsco, a_dm, r_dm, c_score, r_score):
+def filterRECOM(df, dsco, a_dm, r_dm, c_score, r_score, corr):
     '''
     Keep only RECOM IDs that pass the DiffScore threshold.
     '''
@@ -180,6 +180,8 @@ def filterRECOM(df, dsco, a_dm, r_dm, c_score, r_score):
     df['RECOMfiltered_score'] = df.apply(lambda x: x[r_score] if x['DiffScore']>=dsco else x[c_score], axis = 1)
     df['RECOMfiltered_type'] = df.apply(lambda x: 'RECOM' if x['DiffScore']>=dsco else 'COMET', axis = 1)
     df = df.drop(['DiffScore', 'DiffScoreAbs'], 1)
+    if corr:
+        df['RECOMfiltered_score_corr'] = df.apply(lambda x: x['Closest_Xcorr_corr'] if x['DiffScore']>=dsco else x['xcorr_corr'], axis = 1)
     recomized = df['RECOMfiltered_type'].value_counts()['RECOM']
     recomized_t = df[df['Label']=="Target"]['RECOMfiltered_type'].value_counts()['RECOM']
     recomized_d = df[df['Label']=="Decoy"]['RECOMfiltered_type'].value_counts()['RECOM']
@@ -201,6 +203,7 @@ def main(args):
     recom_score = config._sections['RECOMfilterer']['recom_score']
     comet_score = config._sections['RECOMfilterer']['comet_score']
     decimal_places = int(config._sections['General']['decimal_places'])
+    corr_xcorr = int(config._sections['RECOMfilterer']['corr_xcorr'])
     
     # Read infile
     logging.info("Reading input file...")
@@ -247,7 +250,7 @@ def main(args):
     # Apply DiffScoreCutOff (0.05 or t_increase) to whole df
     # Choose which Recom improvements to keep: only those that pass DiffScoreCutOff. Otherwise we keep Comet
     logging.info("Filtering by DiffScoreCutOff...")
-    df, recomized = filterRECOM(df, dsco, assigneddm, recomdm, comet_score, recom_score)
+    df, recomized = filterRECOM(df, dsco, assigneddm, recomdm, comet_score, recom_score, corr_xcorr)
     logging.info("RECOMized " + str(recomized[0]) + " PSMs (" + str(round((recomized[0]/df.shape[0])*100, 2)) + " % of total PSMs)")
     logging.info("\t\t" + str(recomized[1]) + " Targets")
     logging.info("\t\t" + str(recomized[2]) + " Decoys")
