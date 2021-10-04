@@ -16,9 +16,51 @@ __status__ = "Development"
 
 import argparse
 import logging
+import numpy as np
 import os
 import pandas as pd
 import sys
+
+def read_experiments(experiments_table):
+    '''
+    Read input file containing groups and filenames in tab-separated format.
+    '''
+    #df = pd.read_csv(experiments_table, sep="\t", names=['Batch', 'Experiment', 'Filename'])
+    df = pd.read_csv(experiments_table, sep="\t", names=['Batch', 'Experiment'])
+    df['Batch'] = df['Batch'].astype('string')
+    df['Batch'] = df['Batch'].str.strip()
+    df['Experiment'] = df['Experiment'].astype('string')
+    df['Experiment'] = df['Experiment'].str.strip()
+    if df['Experiment'].duplicated().any(): # Check no repeats
+        sys.exit('ERROR: Batch table contains repeat values in the experiments column')
+    #exp_groups = exp_df.groupby(by = exp_df.columns[0], axis = 0)
+    #for position, exp in exp_groups:
+        #TODO: read filepath or everything in folder
+    return df
+
+def make_groups(df, groups):
+    '''
+    Add Batch and Experiment columns to input file with the peak assignation.
+    '''
+    def _match_file(groups, experiment):
+        if experiment in group_dict:
+            group = group_dict.get(experiment)[0]
+        else:
+            group = 'N/A'
+        return group
+    df['Batch'] = 'N/A'
+    #df['Experiment'] = df.apply(lambda x: _match_file(groups, x['Filename']), axis = 1)
+    group_dict = {}
+    for x in range(len(groups)):
+        currentid = groups.iloc[x,1]
+        currentvalue = groups.iloc[x,0]
+        group_dict.setdefault(currentid, [])
+        group_dict[currentid].append(currentvalue)
+    df['Batch'] = np.vectorize(_match_file)(group_dict, df['Experiment'])
+    if 'N/A' in df['Batch'].unique():
+        unassigned = str(df['Batch']=='N/A'['Experiment'].unique().str.join(" ,"))
+        logging.info('Warning: Experiment(s) ' +unassigned + ' could not be assigned to a batch!')
+    return df
 
 def main(args):
     '''
@@ -27,6 +69,10 @@ def main(args):
     # Main variables
     logging.info('Read input file')
     df = pd.read_csv(args.infile, sep="\t", float_precision='high')
+    
+    logging.info('Read experiments table')
+    groups = read_experiments(args.experiment_table)
+    df = make_groups(df, groups)
     
     logging.info("Write output files by batch:")
     dfs = df.groupby('Batch')
@@ -61,6 +107,7 @@ if __name__ == '__main__':
     defaultconfig = os.path.join(os.path.dirname(__file__), "config/SHIFTS.ini")
     
     parser.add_argument('-i',  '--infile', required=True, help='Input file with the peak assignation')
+    parser.add_argument('-b',  '--batch', required=True, help='Tab-separated file containing batch and experiment names')
     parser.add_argument('-o',  '--output', required=True, help='Output directory. Will be created if it does not exist')
     
     #parser.add_argument('-f',  '--fdr_filter', help='FDR value to filter by')
