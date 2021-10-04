@@ -319,7 +319,7 @@ def main(args):
     # Read input file
     logging.info('Read input file')
     #df = pd.read_feather(args.infile)
-    df = pd.read_csv(args.infile, sep="\t", float_precision='high')
+    df = pd.read_csv(args.infile, sep="\t", float_precision='high', low_memory=False)
     
     # Add groups
     logging.info('Read experiments table')
@@ -475,10 +475,10 @@ if __name__ == '__main__':
     #     sys.exit("Could not create output directory at %s" % args.output)
 
     # logging debug level. By default, info level
-    #log_file = args.infile[:-4] + '_FDR_log.txt'
-    log_file = os.path.join(args.output, args.infile.split('\\')[-1].split('/')[-1][:-4] + '_FDR_log.txt')
-    log_file_debug = os.path.join(args.output, args.infile.split('\\')[-1].split('/')[-1][:-4] + '_FDR_log_debug.txt')
-    #log_file_debug = args.infile[:-4] + '_FDR_log_debug.txt'
+    log_file = args.infile[:-4] + '_FDR_log.txt'
+    #log_file = os.path.join(args.output, args.infile.split('\\')[-1].split('/')[-1][:-4] + '_FDR_log.txt')
+    #log_file_debug = os.path.join(args.output, args.infile.split('\\')[-1].split('/')[-1][:-4] + '_FDR_log_debug.txt')
+    log_file_debug = args.infile[:-4] + '_FDR_log_debug.txt'
     if args.verbose:
         logging.basicConfig(level=logging.DEBUG,
                             format='%(asctime)s - %(levelname)s - %(message)s',
@@ -494,7 +494,7 @@ if __name__ == '__main__':
 
     # start main function
     logging.info('start script: '+"{0}".format(" ".join([x for x in sys.argv])))
-    if created == 1:
-        logging.info("Created output directory at %s " % args.output)
+    #if created == 1:
+        #logging.info("Created output directory at %s " % args.output)
     main(args)
     logging.info('end script')
