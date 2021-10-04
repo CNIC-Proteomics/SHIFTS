@@ -191,7 +191,7 @@ def joiner(Filepath,dffasta,PDO,PDS,PHR,pepcolumn):
     dffile=pd.read_csv(Filepath,sep="\t",header=PHR)
     dffile=dffile.merge(dffasta, how='left', on=pepcolumn) 
 
-    ### START: RAFA MODIFATION ###
+    ### START: RAFA MODIFICATION ###
     #start = time.time()
     dffile = getMostProbableProtein(dffile, pepcolumn)
     #print(f"Calculated most probable protein in {divmod(time.time()-start,60)[0]}m and {round(divmod(time.time()-start,60)[1],4)}s")
