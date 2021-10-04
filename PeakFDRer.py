@@ -34,9 +34,10 @@ def read_experiments(experiments_table):
     '''
     Read input file containing groups and filenames in tab-separated format.
     '''
-    df = pd.read_csv(experiments_table, sep="\t", names=['Batch', 'Experiment', 'Filename'])
-    df['Batch'] = df['Batch'].astype('string')
-    df['Batch'] = df['Batch'].str.strip()
+    #df = pd.read_csv(experiments_table, sep="\t", names=['Batch', 'Experiment', 'Filename'])
+    df = pd.read_csv(experiments_table, sep="\t", names=['Experiment', 'Filename'])
+    #df['Batch'] = df['Batch'].astype('string')
+    #df['Batch'] = df['Batch'].str.strip()
     df['Experiment'] = df['Experiment'].astype('string')
     df['Experiment'] = df['Experiment'].str.strip()
     df['Filename'] = df['Filename'].astype('string')
@@ -64,16 +65,19 @@ def make_groups(df, groups):
             group = 'N/A'
         return group
     df['Experiment'] = 'N/A'
-    df['Batch'] = 'N/A'
+    #df['Batch'] = 'N/A'
     #df['Experiment'] = df.apply(lambda x: _match_file(groups, x['Filename']), axis = 1)
     group_dict = {}
     for x in range(len(groups)):
-        currentid = groups.iloc[x,2]
-        currentvalue = groups.iloc[x,1], groups.iloc[x,0]
+        # currentid = groups.iloc[x,2]
+        # currentvalue = groups.iloc[x,1], groups.iloc[x,0]
+        currentid = groups.iloc[x,1]
+        currentvalue = groups.iloc[x,0]
         group_dict.setdefault(currentid, [])
         group_dict[currentid].append(currentvalue)
-    df['Experiment'] = np.vectorize(_match_file)(group_dict, df['Filename'])[0]
-    df['Batch'] = np.vectorize(_match_file)(group_dict, df['Filename'])[1]
+    #df['Experiment'] = np.vectorize(_match_file)(group_dict, df['Filename'])[0]
+    df['Experiment'] = np.vectorize(_match_file)(group_dict, df['Filename'])
+    #df['Batch'] = np.vectorize(_match_file)(group_dict, df['Filename'])[1]
     if 'N/A' in df['Experiment'].unique():
         logging.info('Warning: ' + str(df['Experiment'].value_counts()['N/A']) + ' rows could not be assigned to an experiment! They will still be used to calculate Local and Peak FDR.') # They will all be grouped together for FDR calculations
     return df
