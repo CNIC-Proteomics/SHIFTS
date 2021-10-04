@@ -381,21 +381,23 @@ def main(args):
     df['Filename'] = df.apply(lambda x: x['Filename'].split('\\')[-1].split('/')[-1][:-4], axis=1)
     # Split in folders by Experiment
 
-    logging.info("Write output files:")
-    dfs = df.groupby('Batch')
-    for group in list(dfs.groups.keys()):
-        group_path = os.path.join(args.output, group)
-        if group == 'N/A':
-            group_path = os.path.join(args.output, 'Unassigned')
-        if not os.path.exists(group_path):
-            os.mkdir(group_path)
-        if group == 'N/A':
-            outfile = os.path.join(group_path, args.infile.split('\\')[-1].split('/')[-1][:-4] + '_Unassigned_FDR.txt')
-        else:
-            outfile = os.path.join(group_path, args.infile.split('\\')[-1].split('/')[-1][:-4] + '_' + group + '_FDR.txt')
-        group_df = dfs.get_group(group)
-        group_df.to_csv(outfile, index=False, sep='\t', encoding='utf-8')
-        logging.info('\t' + group + ': ' + str(outfile))
+    logging.info("Write output file:")
+    outfile = args.infile[:-4] + '_FDR.txt'
+    df.to_csv(outfile, index=False, sep='\t', encoding='utf-8')
+    # dfs = df.groupby('Batch')
+    # for group in list(dfs.groups.keys()):
+    #     group_path = os.path.join(args.output, group)
+    #     if group == 'N/A':
+    #         group_path = os.path.join(args.output, 'Unassigned')
+    #     if not os.path.exists(group_path):
+    #         os.mkdir(group_path)
+    #     if group == 'N/A':
+    #         outfile = os.path.join(group_path, args.infile.split('\\')[-1].split('/')[-1][:-4] + '_Unassigned_FDR.txt')
+    #     else:
+    #         outfile = os.path.join(group_path, args.infile.split('\\')[-1].split('/')[-1][:-4] + '_' + group + '_FDR.txt')
+    #     group_df = dfs.get_group(group)
+    #     group_df.to_csv(outfile, index=False, sep='\t', encoding='utf-8')
+    #     logging.info('\t' + group + ': ' + str(outfile))
     
     #outfile = args.infile[:-4] + '_FDR.txt'
     #df.to_csv(outfile, index=False, sep='\t', encoding='utf-8')
@@ -421,7 +423,7 @@ if __name__ == '__main__':
     parser.add_argument('-i',  '--infile', required=True, help='Input file with the peak assignation')
     parser.add_argument('-e',  '--experiment_table', required=True, help='Tab-separated file containing experiment names and file paths')
     parser.add_argument('-c',  '--config', default=defaultconfig, help='Path to custom config.ini file')
-    parser.add_argument('-o',  '--output', required=True, help='Output directory. Will be created if it does not exist')
+    #parser.add_argument('-o',  '--output', required=True, help='Output directory. Will be created if it does not exist')
     
     parser.add_argument('-s',  '--score_column', help='Name of column with score for FDR calculation')
     parser.add_argument('-p',  '--peak_column', help='Name of column containing the peak/orphan labels')
@@ -460,13 +462,13 @@ if __name__ == '__main__':
         with open(os.path.dirname(args.infile) + '/SHIFTS.ini', 'w') as newconfig:
             config.write(newconfig)
     
-    created = 0
-    try:
-        if not os.path.exists(args.output):
-            os.makedirs(args.output)
-            created = 1
-    except OSError:
-        sys.exit("Could not create output directory at %s" % args.output)
+    # created = 0
+    # try:
+    #     if not os.path.exists(args.output):
+    #         os.makedirs(args.output)
+    #         created = 1
+    # except OSError:
+    #     sys.exit("Could not create output directory at %s" % args.output)
 
     # logging debug level. By default, info level
     #log_file = args.infile[:-4] + '_FDR_log.txt'
