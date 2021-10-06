@@ -187,11 +187,10 @@ def Fastareader(Fastapath,nm,decoy_tag,minpeptidelength,maxpeptidelength,aa_cut,
 
 
 def joiner(Filepath,dffasta,PDO,PDS,PHR,pepcolumn):    
-    
     dffile=pd.read_csv(Filepath,sep="\t",header=PHR)
     dffile=dffile.merge(dffasta, how='left', on=pepcolumn) 
 
-    ### START: RAFA MODIFICATION ###
+    ### START: RAFA MODIFATION ###
     #start = time.time()
     dffile = getMostProbableProtein(dffile, pepcolumn)
     #print(f"Calculated most probable protein in {divmod(time.time()-start,60)[0]}m and {round(divmod(time.time()-start,60)[1],4)}s")
@@ -296,11 +295,18 @@ def getMostProbableProtein(dffile, pepcolumn):
     df_index_result_pos[non_decoy_bool] = aux_arr
 
     # Generate new columns
+    mppSuffix = "_MPP"
+
     new_columns_list = [[j.split(";")[k] if k!=-1 else "" for j,k in zip(dffile[i].to_list(), df_index_result_pos)] \
         for i in semicolon_col_work_list]
 
-    new_columns_df = pd.DataFrame({i+"_MPP": j for i,j in zip(semicolon_col_work_list, new_columns_list)})
+    new_columns_df = pd.DataFrame({i+mppSuffix: j for i,j in zip(semicolon_col_work_list, new_columns_list)})
 
+    # Remove > from the first character in protein column
+    if semicolon_col_protein_list[1]+mppSuffix in new_columns_df.columns:
+        new_columns_df[semicolon_col_protein_list[1]+mppSuffix] = new_columns_df[semicolon_col_protein_list[1]+mppSuffix].str.replace('^>', '', regex=True)
+    
+    
     # Generate final dataframe
     dffile_MPP = pd.concat([dffile.reset_index(drop=True), new_columns_df.reset_index(drop=True)], axis=1)
     
@@ -322,10 +328,11 @@ def main(Fastapath,nm,decoy_tag,minpeptidelength,maxpeptidelength,aa_cut,not_cut
     collogic=[pepcolumn]+[i for (i, v) in zip(col, collogic) if v=="1"]
     
     if  PDO=="1":
-        
+
         with concurrent.futures.ProcessPoolExecutor(max_workers=num_threads) as executor:
             
             executor.map(joiner,Filepath,repeat(dffasta[collogic]),repeat(PDO),repeat(PDS),repeat(PHR),repeat(pepcolumn)) 
+            
         
     if  FDO=="1":
         
@@ -383,7 +390,7 @@ if __name__ == '__main__':
     
     collogic=[x["MissCleavage"],x["ProteinsNumber"],x["Proteotypic"],x["UniProtIDs"],x["Proteins"],x["ProteinsLength"],x["NpMiss"]
               ,x["NpTotal"],x["PeptidePos"],x["PrevNextaa"]]
-    
+
     main(Fastapath,nm,decoy_tag,minpeptidelength,maxpeptidelength,aa_cut,not_cut,isoleu,enzymesuffix,Filepath,pepcolumn,collogic,FDO,FDS,PDO,PDS,PHR,num_threads)
     
     
@@ -391,13 +398,3 @@ if __name__ == '__main__':
     timer=divmod(end-start,60)  
     etxt1="FINISHED FASTA DIGESTION IN "+str(timer[0])+" MINUTES AND "+ str(round(timer[1],4))+" SECONDS"
     print(etxt1)
-    
-    
-    
-    
-    
-
-    
-    
-    
- 
