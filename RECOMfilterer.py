@@ -179,9 +179,9 @@ def filterRECOM(df, dsco, a_dm, r_dm, c_score, r_score, corr):
     df['RECOMfiltered_DM'] = df.apply(lambda x: x[r_dm] if x['DiffScore']>=dsco else x[a_dm], axis = 1)
     df['RECOMfiltered_score'] = df.apply(lambda x: x[r_score] if x['DiffScore']>=dsco else x[c_score], axis = 1)
     df['RECOMfiltered_type'] = df.apply(lambda x: 'RECOM' if x['DiffScore']>=dsco else 'COMET', axis = 1)
-    df = df.drop(['DiffScore', 'DiffScoreAbs'], 1)
     if corr:
         df['RECOMfiltered_score_corr'] = df.apply(lambda x: x['Closest_Xcorr_corr'] if x['DiffScore']>=dsco else x['xcorr_corr'], axis = 1)
+    df = df.drop(['DiffScore', 'DiffScoreAbs'], 1)
     recomized = df['RECOMfiltered_type'].value_counts()['RECOM']
     recomized_t = df[df['Label']=="Target"]['RECOMfiltered_type'].value_counts()['RECOM']
     recomized_d = df[df['Label']=="Decoy"]['RECOMfiltered_type'].value_counts()['RECOM']
