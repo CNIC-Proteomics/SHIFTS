@@ -303,12 +303,17 @@ def getMostProbableProtein(dffile, pepcolumn):
     new_columns_df = pd.DataFrame({i+mppSuffix: j for i,j in zip(semicolon_col_work_list, new_columns_list)})
 
     # Remove > from the first character in protein column
-    if semicolon_col_protein_list[1]+mppSuffix in new_columns_df.columns:
-        new_columns_df[semicolon_col_protein_list[1]+mppSuffix] = new_columns_df[semicolon_col_protein_list[1]+mppSuffix].str.replace('^>', '', regex=True)
+    if semicolon_col_protein_list[0]+mppSuffix in new_columns_df.columns:
+        new_columns_df[semicolon_col_protein_list[0]+mppSuffix] = new_columns_df[semicolon_col_protein_list[0]+mppSuffix].str.replace('^>', '', regex=True)
     
     
     # Generate final dataframe
     dffile_MPP = pd.concat([dffile.reset_index(drop=True), new_columns_df.reset_index(drop=True)], axis=1)
+
+    # Replace " // " for ";"
+    for i in semicolon_col_work_list:
+        dffile_MPP[i] = dffile_MPP[i].str.replace(' // ', ';')
+
     
     return dffile_MPP
 
