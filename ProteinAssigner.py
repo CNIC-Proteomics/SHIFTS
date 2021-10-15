@@ -154,7 +154,7 @@ def Fastareader(Fastapath,nm,decoy_tag,minpeptidelength,maxpeptidelength,aa_cut,
     	
         if i[0] == '>':
             if seq!="":
-                
+
                 seq,qlen,nmp,mp=Digest(seq,nm,minpeptidelength,maxpeptidelength,aa_cut,not_cut,isoleu)
                 sequence.append(seq)
                 proteinlen.append(qlen)
@@ -208,7 +208,7 @@ def getMostProbableProtein(dffile, pepcolumn):
     '''
     # Columns containing information from multiple protein separated by ";". Name of columns got from "col" variable in main
     semicolon_col_list = ["ProteinsLength","NpMiss","NpTotal","PeptidePos","PrevNextaa"]
-    semicolon_col_protein_list = ["UniProtIDs","Proteins"]
+    semicolon_col_protein_list = ["Proteins", "UniProtIDs"]
 
     semicolon_col_work_list = [i for i in semicolon_col_protein_list+semicolon_col_list if i in dffile.columns]
     semicolon_col_protein_work_list = [i for i in semicolon_col_protein_list if i in semicolon_col_work_list]
@@ -231,7 +231,7 @@ def getMostProbableProtein(dffile, pepcolumn):
     non_decoy_bool = ~dffile[sc_prot_col].isnull()
 
     # Extract sc_prot_col from dffile. Generate List of Lists [ [p1, p2...], [p1, p2..] ... ]
-    sc_prot_list = [tuple(i.split(";")) for i in dffile.loc[non_decoy_bool, sc_prot_col].to_list()]
+    sc_prot_list = [tuple(i.split(" // ")) for i in dffile.loc[non_decoy_bool, sc_prot_col].to_list()]
 
     # Extract peptide sequence of each scan: pepcolumn of dffile
     p_seq_list = dffile.loc[non_decoy_bool, pepcolumn].to_list()
@@ -297,7 +297,7 @@ def getMostProbableProtein(dffile, pepcolumn):
     # Generate new columns
     mppSuffix = "_MPP"
 
-    new_columns_list = [[j.split(";")[k] if k!=-1 else "" for j,k in zip(dffile[i].to_list(), df_index_result_pos)] \
+    new_columns_list = [[j.split(" // ")[k] if k!=-1 else "" for j,k in zip(dffile[i].to_list(), df_index_result_pos)] \
         for i in semicolon_col_work_list]
 
     new_columns_df = pd.DataFrame({i+mppSuffix: j for i,j in zip(semicolon_col_work_list, new_columns_list)})
@@ -319,8 +319,8 @@ def main(Fastapath,nm,decoy_tag,minpeptidelength,maxpeptidelength,aa_cut,not_cut
         
     sh=expand(Fastareader(Fastapath,nm,decoy_tag,minpeptidelength,maxpeptidelength,aa_cut,not_cut,isoleu))
     sh.sort(key=lambda x: x[-2])
-    sh=[ k+[";".join(i) for i in list(zip(*g))[:7]] for k, g in itertools.groupby(sh, lambda x: x[-2:])]
-    [i.insert(2,len(i[4].split(";"))) for i in sh]
+    sh=[ k+[" // ".join(i) for i in list(zip(*g))[:7]] for k, g in itertools.groupby(sh, lambda x: x[-2:])]
+    [i.insert(2,len(i[4].split(" // "))) for i in sh]
     [i.insert(3,"Proteo") if i[2]==1 else i.insert(3,"NoProteo") for i in sh]
     col=["MissCleavage","ProteinsNumber","Proteotypic","UniProtIDs","Proteins","ProteinsLength","NpMiss","NpTotal","PeptidePos","PrevNextaa"]
     dfcol=[pepcolumn]+col
