@@ -71,7 +71,7 @@ def main(args):
     df = pd.read_csv(args.infile, sep="\t", float_precision='high')
     
     logging.info('Read experiments table')
-    groups = read_experiments(args.experiment_table)
+    groups = read_experiments(args.batch)
     df = make_groups(df, groups)
     
     logging.info("Write output files by batch:")
