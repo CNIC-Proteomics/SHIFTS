@@ -58,8 +58,9 @@ def make_groups(df, groups):
         group_dict[currentid].append(currentvalue)
     df['Batch'] = np.vectorize(_match_file)(group_dict, df['Experiment'])
     if 'N/A' in df['Batch'].unique():
-        unassigned = str(df['Batch']=='N/A'['Experiment'].unique().str.join(" ,"))
-        logging.info('Warning: Experiment(s) ' +unassigned + ' could not be assigned to a batch!')
+        #unassigned = str(df['Batch']=='N/A'['Experiment'].unique().str.join(" ,"))
+        unassigned = np.array2string(df['Experiment'][df['Batch']=='N/A'].unique()).join(" ,")
+        logging.info('Warning: Experiment(s) ' + unassigned + ' could not be assigned to a batch!')
     return df
 
 def main(args):
