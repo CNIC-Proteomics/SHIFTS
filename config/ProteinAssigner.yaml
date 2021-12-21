@@ -1,0 +1,50 @@
+#
+# ProteinAssigner_v3
+#
+
+# Path to the file(s) containing PSM
+infile:
+  - Path/to/File1
+#  - Path/to/File2
+#  - Path/to/File3
+
+
+# Name of the column containing peptide sequence
+seq_column: plain_peptide
+
+# Select mode of execution: fasta/column
+mode: fasta
+
+
+#
+# FASTA mode parameters (if fasta mode selected)
+#
+fasta_params:
+
+  # Path to fasta file used to identify candidate proteins
+  fasta: D:\CNIC\Proteomica\GroupTools\ProteinAssigner\tests\PTM_test\test2\mouse_UP000000589_202007_sw.target-decoy.fasta
+  
+  # decoy prefix in fasta
+  decoy_prefix: DECOY_
+
+  # Convert L, I and J to the selected letter
+  iso_leucine: L
+
+
+
+#
+# COLUMN mode parameters (if column mode selected)
+#
+column_params:
+
+  # Name of the column(s) containing information of the candidate proteins
+  prot_column:
+    - Protein_Accessions
+    - Protein_Descriptions
+  
+  # Character used to separate candidate proteins
+  sep_char: ;
+
+
+# Number of cores
+n_cores: 4
