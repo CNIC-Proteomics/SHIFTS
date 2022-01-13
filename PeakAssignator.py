@@ -297,8 +297,8 @@ if __name__ == '__main__':
             config.write(newconfig)
 
     # logging debug level. By default, info level
-    log_file = outfile = args.infile[:-15] + 'PeakAssignation_log.txt'
-    log_file_debug = outfile = args.infile[:-15] + 'PeakAssignation_log_debug.txt'
+    log_file = outfile = args.infile[:-4] + 'PeakAssignation_log.txt'
+    log_file_debug = outfile = args.infile[:-4] + 'PeakAssignation_log_debug.txt'
     if args.verbose:
         logging.basicConfig(level=logging.DEBUG,
                             format='%(asctime)s - %(levelname)s - %(message)s',
