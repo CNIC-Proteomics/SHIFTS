@@ -22,7 +22,7 @@ mode: fasta
 fasta_params:
 
   # Path to fasta file used to identify candidate proteins
-  fasta: D:\CNIC\Proteomica\GroupTools\ProteinAssigner\tests\PTM_test\test2\mouse_UP000000589_202007_sw.target-decoy.fasta
+  fasta: Path/to/File.fasta
   
   # decoy prefix in fasta
   decoy_prefix: DECOY_
