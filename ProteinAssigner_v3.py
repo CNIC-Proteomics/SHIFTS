@@ -150,11 +150,19 @@ def getCandidateProteins_in(q, pp_set, paramsDict):
     '''
 
     # Split pp_set in chunks
-    pp_set_chunks = split(pp_set, int(paramsDict['n_cores']))
+    #pp_set_chunks = split(pp_set, int(paramsDict['n_cores']))
+    
+    q_seq_chunks = split(q['seq'], int(paramsDict['n_cores']))
+    acc_seq_chunks = split(q['acc'], int(paramsDict['n_cores']))
+    d_seq_chunks = split(q['d'], int(paramsDict['n_cores']))
 
     with concurrent.futures.ProcessPoolExecutor(max_workers=int(paramsDict['n_cores'])) as executor:
-        sub_seqs = list(executor.map(pp_set_in_prot, pp_set_chunks, repeat(q['seq'])))
-        sub_seqs = list(executor.map(pp_seq_in_acc_d, sub_seqs, repeat(q['acc']), repeat(q['d']))) 
+        sub_seqs = list(executor.map(pp_set_in_prot, repeat(pp_set), q_seq_chunks))
+        sub_seqs = list(executor.map(pp_seq_in_acc_d, sub_seqs, acc_seq_chunks, d_seq_chunks)) 
+
+        #sub_seqs = list(executor.map(pp_set_in_prot, pp_set_chunks, repeat(q['seq'])))
+        #sub_seqs = list(executor.map(pp_seq_in_acc_d, sub_seqs, repeat(q['acc']), repeat(q['d']))) 
+    
     
     sub_seqs = add_flatten_lists(sub_seqs)
 
@@ -171,25 +179,63 @@ def pp_set_in_prot(pp_set, seq_list):
 
 
 def pp_seq_in_acc_d(sub_seqs, acc_list, d_list):
-    return [[' // '.join(j) for j in list(zip(*filter(lambda x: x[0], zip(i, acc_list, d_list))))[1:]] for i in sub_seqs]
+    return [list(zip(*filter(lambda x: x[0], zip(i, acc_list, d_list))))[1:] for i in sub_seqs]
+    #return [[' // '.join(j) for j in list(zip(*filter(lambda x: x[0], zip(i, acc_list, d_list))))[1:]] for i in sub_seqs]
 
 
 def add_flatten_lists(the_lists):
+    
+    # the_lists = [[], [], ..., []k], where k is the number of chunks.
+    # the_lists[i] = [[], [], ... []n], where n is the number of plain peptides
+    # the_lists[i][j] = [(acc), (d)], where (acc) and (d) are tuples with candidate proteins
+
+    # Some elements the_lists[i][j] are equal to [], so we "repair" them to [(''), ('')]
+    sub_seqs_repaired = [[[('',), ('',)] if len(j)==0 else j for j in i] for i in the_lists]
+
+    # Group plain peptides of different chunks
+    tmp = list(zip(*sub_seqs_repaired))
+
+    # Group acc and d of plain peptides from different chunks
+    tmp2= [list(zip(*i)) for i in tmp]
+
+    # Flatten acc and d (they are a list of tuples...)
+    tmp3 = [[[iii for ii in i for iii in ii if iii!=''],[jjj for jj in j for jjj in jj if jjj!='']] for i,j in tmp2]
+
+    # Join list of acc and d as a string
+    result = [[' // '.join(i), ' // '.join(j)] for i,j in tmp3]
+    
+    """
     result = []
     for _list in the_lists:
         result += _list
+    """
     return result
+    
 
 
 def getMostProbableProtein(dffile, paramsDict):
     '''
     
     '''
+    # Sort alphabetically candidate proteins using paramsDict["column_params"]['prot_column'][0] as reference
+    tmp = [dffile[i].to_list() for i in paramsDict["column_params"]['prot_column']]
+    tmp = [[[elem.strip() for elem in row.split(paramsDict["column_params"]['sep_char'])] for row in col] for col in tmp]
+    tmp = [list(zip(*zipped_row)) for zipped_row in zip(*tmp)]
+    tmp = [sorted(row, key=lambda x: x[0]) for row in tmp]
+    tmp = list(zip(*[[paramsDict["column_params"]['sep_char'].join(col) for col in list(zip(*row))] for row in tmp]))
+
+    workingColumns = []
+    for i,j in zip(paramsDict["column_params"]['prot_column'], tmp):
+        k = "_mpp_"+i
+        workingColumns.append(k)
+        dffile[k] = j
+
+
     # Columns containing information from multiple protein separated by ";". Name of columns got from "col" variable in main
     #semicolon_col_list = paramsDict['_additional_column'] #["ProteinsLength","NpMiss","NpTotal","PeptidePos","PrevNextaa"]
 
     # Name of the column with protein information (it can be UniProtIDs or Proteins)
-    sc_prot_col = paramsDict["column_params"]['prot_column'][0]
+    sc_prot_col = workingColumns[0]
 
     # Get indexes of dffile
     df_index = dffile.index.to_list()
@@ -208,26 +254,7 @@ def getMostProbableProtein(dffile, paramsDict):
         
         # sc_prot_list contains a list with sets of (valid) candidate proteins. 
         # sc_prot_list_index contains a list with sets of index of these valid candidate proteins (excluding "" and decoys)
-        #import pdb; pdb.set_trace()
-        """
-        l2 = []
-        import pdb
-        try:
-            for i in sc_prot_list:
-                l1 = []
-                for n,j in enumerate(i):
-                    if 'decoy' in j.lower(): continue
-                    l1.append([j,n])
-            
-                l2.append(list(zip(*l1)))
-            #try:
-            r1, r2 = list(zip(*l2[39000:39062]))
-        except:
-            print("Hola?")
-            pdb.set_trace()
-
-        pdb.set_trace()
-        """
+        
         # if only contain decoy it will be []
         sc_prot_list_index_pair = [list(zip(*[[j,n] for n,j in enumerate(i) if 'decoy' not in j.lower()])) for i in sc_prot_list]
         # replace [] by [(decoy,), (0,)]
@@ -256,11 +283,11 @@ def getMostProbableProtein(dffile, paramsDict):
     protein_from_scan = sorted([j for i in sc_prot_list for j in i])
     protein2nscan = {k : len(list(g)) for k, g in itertools.groupby(protein_from_scan)}
 
+
     # Extract elements of sc_prot_list with more than one protein
     sc_prot_list_number = np.array([len(i) for i in sc_prot_list])
     sc_prot_gt1_bool_arr = sc_prot_list_number > 1
     sc_prot_gt1_list = [i for i,j in zip(sc_prot_list, sc_prot_gt1_bool_arr.tolist()) if j]
-
     
     # Resolve elements with one protein only: From full index, get non-decoy. And from them, get those with one protein
     # aux_arr is analogous to non-decoy elements. We first index those with one protein only.
@@ -273,7 +300,6 @@ def getMostProbableProtein(dffile, paramsDict):
     # aux_arr2 is analogous to elements with more than one protein. We first index those with only one maximum
     # aux_arr2 is a subset of aux_arr --> aux_arr2 = aux_arr[sc_prot_gt1_bool_arr]
     aux_arr2 = np.ones_like(np.arange(0, len(sc_prot_gt1_list)))*(-1)
-
     
     # Replace protein by its number of peptides
     sc_prot_npep_gt1_list = [[protein2npep[j] for j in i] for i in sc_prot_gt1_list]
@@ -282,7 +308,19 @@ def getMostProbableProtein(dffile, paramsDict):
     sc_prot_npep_gt1_1max = [[n, np.argmax(i)] for n, i in enumerate(sc_prot_npep_gt1_list) if np.sum(np.max(i) == np.array(i)) == 1]
     sc_prot_npep_gt1_1max_index = [i for i,j in sc_prot_npep_gt1_1max]
     sc_prot_npep_gt1_1max_position = [j for i,j in sc_prot_npep_gt1_1max]
-    
+
+    # This array will contain partition coefficient calculated using peptides
+    df_part_coef_pep = np.zeros_like(df_index, dtype=np.float64)
+    df_part_coef_pep[non_decoy_bool] = 1
+    tmp = [np.max(i)/np.sum(i) for i in sc_prot_npep_gt1_list]
+    df_part_coef_pep[dffile.loc[non_decoy_bool, :].index.to_numpy()[sc_prot_gt1_bool_arr]] = np.array(tmp)
+
+
+    df_part_theor_coef_pep = np.zeros_like(df_index, dtype=np.float64)
+    df_part_theor_coef_pep[non_decoy_bool] = 1
+    tmp = [1/len(i) for i in sc_prot_npep_gt1_list]
+    df_part_theor_coef_pep[dffile.loc[non_decoy_bool, :].index.to_numpy()[sc_prot_gt1_bool_arr]] = np.array(tmp)
+
     # Add solved position to aux_arr2
     aux_arr2[sc_prot_npep_gt1_1max_index] = sc_prot_npep_gt1_1max_position
 
@@ -304,11 +342,13 @@ def getMostProbableProtein(dffile, paramsDict):
 
     # Incorporate to df_index_result_pos its subset aux_arr
     df_index_result_pos[non_decoy_bool] = aux_arr
+    df_part_coef_pep[df_index_result_pos==-1] = 0
+    df_part_theor_coef_pep[df_index_result_pos==-1] = 0
 
     # Generate new columns
     mppSuffix = "_MPP"
     
-    workingColumns = paramsDict["column_params"]["prot_column"] #paramsDict['_additional_column']+[paramsDict['prot_column']]
+    #workingColumns = paramsDict["column_params"]["prot_column"] #paramsDict['_additional_column']+[paramsDict['prot_column']]
     if paramsDict['mode']=='column':
         # JUAN ANTONIO case...
         new_columns_list = [
@@ -327,10 +367,10 @@ def getMostProbableProtein(dffile, paramsDict):
         #        for j,k in zip(dffile[sc_prot_col].to_list(), df_index_result_pos)]
         #    ]
         
-        if len(paramsDict["column_params"]["prot_column"]) > 1:
+        if len(workingColumns) > 1:
             # split candidate proteins removing blank space
             new_columns_list_2 = [[[l.strip() for l in j.split(paramsDict["column_params"]['sep_char']) if l.strip()!=''] for j in dffile[i].to_list()] \
-                for i in paramsDict["column_params"]["prot_column"][1:]]
+                for i in workingColumns[1:]]
 
             # extract non decoys 
             new_columns_list_2 = [[np.array(j1)[list(j2)].tolist() if j2!=[] else j1 for j1,j2 in zip(i,all_prot_list_index)] 
@@ -351,8 +391,8 @@ def getMostProbableProtein(dffile, paramsDict):
         new_columns_list = [[[l.strip() for l in j.split(paramsDict["column_params"]['sep_char']) if l.strip()!=''][k] if k!=-1 else "" for j,k in zip(dffile[i].to_list(), df_index_result_pos)] \
             for i in workingColumns]
 
-    new_columns_df = pd.DataFrame({i+mppSuffix: j for i,j in zip(workingColumns, new_columns_list)})
-
+    new_columns_df = pd.DataFrame({i+mppSuffix: j for i,j in zip(paramsDict["column_params"]['prot_column'], new_columns_list)})
+    
     # Remove > from the first character in protein column
     #if semicolon_col_protein_list[0]+mppSuffix in new_columns_df.columns:
     #    new_columns_df[semicolon_col_protein_list[0]+mppSuffix] = new_columns_df[semicolon_col_protein_list[0]+mppSuffix].str.replace('^>', '', regex=True)
@@ -360,10 +400,13 @@ def getMostProbableProtein(dffile, paramsDict):
     
     # Generate final dataframe
     dffile_MPP = pd.concat([dffile.reset_index(drop=True), new_columns_df.reset_index(drop=True)], axis=1)
+    dffile_MPP[paramsDict["column_params"]['prot_column'][0]+"_coef"] = df_part_coef_pep
+    dffile_MPP[paramsDict["column_params"]['prot_column'][0]+"_coef_min"] = df_part_theor_coef_pep
+    dffile_MPP.drop(columns=workingColumns, inplace=True)
 
     # Replace " // " for ";"
     if paramsDict["mode"].lower()=="fasta":
-        for i in workingColumns:
+        for i in paramsDict["column_params"]['prot_column']:
             dffile_MPP[i] = dffile_MPP[i].str.replace(paramsDict["column_params"]['sep_char'], ';')
 
     return dffile_MPP
@@ -399,7 +442,7 @@ def main(paramsDict):
         sys.exit(-1)
 
     if not paramsDict['seq_column'] in df.columns:
-        logging.error(f'{paramsDict["seq_column"]} column not found')
+        logging.error(f'{paramsDict["seq_column"]} column with plain peptides not found')
         sys.exit(-3)
 
     
@@ -433,14 +476,14 @@ def main(paramsDict):
         logging.info(f'Plain peptides were searched in target proteins {str(round(time()-t, 2))}s')
 
         # Find the rest of the plain peptides in decoy
-        pp_decoy_index = list(zip(*[[i,k] for i,j,k in zip(pp_set, pp_acc_d, range(len(pp_set))) if j==[]]))
+        pp_decoy_index = list(zip(*[[i,k] for i,j,k in zip(pp_set, pp_acc_d, range(len(pp_set))) if j==['','']]))
         if pp_decoy_index != []:
             t = time()
             pp_decoy, pp_decoy_index = pp_decoy_index
             pp_decoy_acc_d = getCandidateProteins_in(decoy_q, pp_decoy, paramsDict)
         
             for i,j in zip(pp_decoy_acc_d, pp_decoy_index): 
-                pp_acc_d[j] = i if i!=[] else ['','']
+                pp_acc_d[j] = i # if i!=[] else ['','']
         
             logging.info(f'Remaining plain peptides were searched in decoy proteins {str(round(time()-t, 2))}s')
 
@@ -453,14 +496,20 @@ def main(paramsDict):
         d_colName, acc_colName = suffixScript+'_description', suffixScript+'_accession'
 
         # get times these columns appear
-        colNumber = np.max(np.sum(list(zip(*[(d_colName in i, acc_colName in i) for i in df.columns])), axis=1))+1
+        tmp = [i for i in df.columns if acc_colName in i]
+        if len(tmp) == 0:
+            colNumber = 1
+        else:
+            colNumber = np.max([int(re.search("[0-9]+", i).group()) for i in tmp]) + 1
+
+        #colNumber = np.max(np.sum(list(zip(*[(d_colName in i, acc_colName in i) for i in df.columns])), axis=1))+1
         d_colName += f"_{colNumber}"
         acc_colName += f"_{colNumber}"
 
         # add these new columns
         df[d_colName] = d_column
         df[acc_colName] = acc_column
-        logging.info(f"{d_colName} and {acc_colName} columns with candidate proteins was created")
+        logging.info(f"{d_colName} and {acc_colName} columns with candidate proteins were created")
 
         # If column params section is note created, add it (it is used in MPP calculation)
         if "column_params" not in paramsDict.keys(): 
