@@ -576,7 +576,7 @@ Usage:
     parser.add_argument('-m',  '--mode', type=str, default="column", help='Select mode of execution: fasta/column')
 
     parser.add_argument('-f',  '--fasta', type=str, help='Path to fasta file used to identify candidate proteins')
-    parser.add_argument('-d',  '--decoy', type=str, default="DECOY_", help='decoy prefix in fasta')
+    parser.add_argument('-dy',  '--decoy', type=str, default="DECOY_", help='decoy prefix in fasta')
     parser.add_argument('-ile',  '--isoleu', type=str, default="L", help='Convert L, I and J to the selected letter')
     parser.add_argument('-cd',  '--cdesc', type=str, default="Protein_Description_Candidate", help='Name of the column with candidate descriptions')
     parser.add_argument('-ca',  '--cacc', type=str, default="Protein_Accessions_Candidate", help='Name of the column with candidate accessions')
@@ -586,6 +586,9 @@ Usage:
     
     parser.add_argument('-q','--qcol', nargs="+", help='Name of the column(s) containing information of the candidate proteins')
     parser.add_argument('-qm','--qmpp', nargs="+", help='Name of the output column(s) with the most probable protein')
+    parser.add_argument('-d','--dcol', nargs="+", default=[], help='Name of the column(s) containing description information of the candidate proteins')
+    parser.add_argument('-dm','--dmpp', nargs="+", default=[], help='Name of the output column(s) with the description of the most probable protein')
+
     parser.add_argument('-t',  '--sep', type=str, default=";", help='Character used as separator')
 
     parser.add_argument('-w',  '--n_workers', type=int, default=2, help='Number of threads/n_workers (default: %(default)s)')
@@ -625,8 +628,8 @@ Usage:
             },
 
             "column_params": {
-                "prot_column": args.qcol,
-                "prot_column_mpp": args.qmpp,
+                "prot_column": args.qcol + args.dcol,
+                "prot_column_mpp": args.qmpp + args.dmpp,
                 "sep_char": args.sep
             }
         }
