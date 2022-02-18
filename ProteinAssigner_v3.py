@@ -15,6 +15,7 @@ import argparse
 import multiprocessing
 import logging
 import os
+import pdb
 import sys
 import yaml
 import concurrent.futures
@@ -27,19 +28,9 @@ import sys
 from time import time
 
 
-# Constants
-progname = os.path.basename(sys.argv[0])
-suffixScript = 'PA'
-
-codingError = {
-    -1: 'Error reading infile',
-    -2: 'Error reading fasta',
-    -3: 'Column with plain peptide was not found',
-    -4: 'Column with candidate proteins was not found'
-}
-
+#
 # Functions and Classes
-
+#
 def readDF(filePath):
     '''
     '''
@@ -283,6 +274,9 @@ def getMostProbableProtein(dffile, paramsDict):
     protein_from_scan = sorted([j for i in sc_prot_list for j in i])
     protein2nscan = {k : len(list(g)) for k, g in itertools.groupby(protein_from_scan)}
 
+    # import pickle
+    # with open("q2p.obj", 'wb') as f: pickle.dump(protein2npep, f)
+    # with open("q2s.obj", 'wb') as f: pickle.dump(protein2nscan, f)
 
     # Extract elements of sc_prot_list with more than one protein
     sc_prot_list_number = np.array([len(i) for i in sc_prot_list])
@@ -346,7 +340,7 @@ def getMostProbableProtein(dffile, paramsDict):
     df_part_theor_coef_pep[df_index_result_pos==-1] = 0
 
     # Generate new columns
-    mppSuffix = "_MPP"
+    # mppSuffix = "_MPP"
     
     #workingColumns = paramsDict["column_params"]["prot_column"] #paramsDict['_additional_column']+[paramsDict['prot_column']]
     if paramsDict['mode']=='column':
@@ -391,7 +385,7 @@ def getMostProbableProtein(dffile, paramsDict):
         new_columns_list = [[[l.strip() for l in j.split(paramsDict["column_params"]['sep_char']) if l.strip()!=''][k] if k!=-1 else "" for j,k in zip(dffile[i].to_list(), df_index_result_pos)] \
             for i in workingColumns]
 
-    new_columns_df = pd.DataFrame({i+mppSuffix: j for i,j in zip(paramsDict["column_params"]['prot_column'], new_columns_list)})
+    new_columns_df = pd.DataFrame({i: j for i,j in zip(paramsDict["column_params"]['prot_column_mpp'], new_columns_list)})
     
     # Remove > from the first character in protein column
     #if semicolon_col_protein_list[0]+mppSuffix in new_columns_df.columns:
@@ -412,20 +406,28 @@ def getMostProbableProtein(dffile, paramsDict):
     return dffile_MPP
 
 
-def writeDF(filePath, df):
+def writeDF(filePath, outFilePath, df):
     df_i = df.loc[df['_filePaths'] == filePath, :].copy()
     df_i.dropna(axis=1, how='all', inplace=True)
     df_i.drop(labels='_filePaths', axis=1, inplace=True)
-    outFilePath = f"{os.path.splitext(filePath)[0]}_{suffixScript}{os.path.splitext(filePath)[1]}"
+    #outFilePath = f"{os.path.splitext(filePath)[0]}_{suffixScript}{os.path.splitext(filePath)[1]}"
     df_i.to_csv(outFilePath, sep="\t", index=False)
 
 def writeIDQ(df, paramsDict):
     '''
     '''
+    
+    if not paramsDict['outfile']:
+        paramsDict['outfile'] = [f"{os.path.splitext(i)[0]}_{suffixScript}{os.path.splitext(i)[1]}"
+            for i in paramsDict['infile']]
+    
     with concurrent.futures.ProcessPoolExecutor(max_workers=int(paramsDict['n_cores'])) as executor:
-        executor.map(writeDF, paramsDict['infile'], repeat(df))
+        executor.map(writeDF, paramsDict['infile'], paramsDict['outfile'], repeat(df))
 
+
+#
 # Main
+#
 def main(paramsDict):
     '''
     '''
@@ -493,22 +495,14 @@ def main(paramsDict):
         acc_column = list(zip(*sorted([j for i in pp_indexes_acc for j in itertools.product(*i)])))[1]
         d_column = list(zip(*sorted([j for i in pp_indexes_d for j in itertools.product(*i)])))[1]
 
-        d_colName, acc_colName = suffixScript+'_description', suffixScript+'_accession'
-
-        # get times these columns appear
-        tmp = [i for i in df.columns if acc_colName in i]
-        if len(tmp) == 0:
-            colNumber = 1
-        else:
-            colNumber = np.max([int(re.search("[0-9]+", i).group()) for i in tmp]) + 1
-
-        #colNumber = np.max(np.sum(list(zip(*[(d_colName in i, acc_colName in i) for i in df.columns])), axis=1))+1
-        d_colName += f"_{colNumber}"
-        acc_colName += f"_{colNumber}"
+        # GET COLUMN NAMES FROM USER PARAMS!!!
+        # d_colName, acc_colName = suffixScript+'_description', suffixScript+'_accession'
+        d_colName, acc_colName = paramsDict['fasta_params']['column_names']['candidate_d'], paramsDict['fasta_params']['column_names']['candidate_a']
 
         # add these new columns
-        df[d_colName] = d_column
         df[acc_colName] = acc_column
+        df[d_colName] = d_column
+        
         logging.info(f"{d_colName} and {acc_colName} columns with candidate proteins were created")
 
         # If column params section is note created, add it (it is used in MPP calculation)
@@ -516,6 +510,10 @@ def main(paramsDict):
             paramsDict["column_params"] = {}
 
         paramsDict["column_params"]['prot_column'] = [acc_colName, d_colName] # column used to calculate most probable protein
+        paramsDict["column_params"]['prot_column_mpp'] = [
+            paramsDict["fasta_params"]['column_names']['mpp_a'],
+            paramsDict["fasta_params"]['column_names']['mpp_d']
+        ]
         #paramsDict['_additional_column'] = [d_colName] # another from which extract information of most probable protein
         paramsDict['_replace_delim'] = True # Protein delimiter is " // ". We want to change it to ; in the end (but only in fasta mode)
         paramsDict["column_params"]['sep_char'] = " // "
@@ -548,48 +546,105 @@ if __name__ == '__main__':
 
     multiprocessing.freeze_support()
     
+    # get the name of script
+    script_name = os.path.basename(__file__)
+    suffixScript = 'PA'
+
     # Parse arguments
     parser = argparse.ArgumentParser(
             description='Calculate most probable protein assigned to each PSM ',
-            #formatter_class=argparse.RawDescriptionHelpFormatter,
             formatter_class=argparse.RawTextHelpFormatter,
             epilog=f'''\
 Created 2021-11-24, Rafael Barrero Rodriguez
 
 Usage:
-    {progname} -c "path to YAML config file"
+    {script_name} -c "path to YAML config file"
+    {script_name} -i "Path\To\Input.File" -o "Path\To\Output.File" -s "Sequence" -q "Protein_Accessions" "Protein_Descriptions" -qm "Protein_Accessions_MPP" "Protein_Descriptions_MPP" -w 2
+    {script_name} -i "Path\To\Input.File" -o "Path\To\Output.File" -s "Sequence" -f "Path\To\Fasta.fa" -cd "Protein_Description_Candidate" -ca "Protein_Accession_Candidate" -ma "Protein_Accessions_MPP" -md "Protein_Descriptions_MPP" -w 2
 ''')
 
 
-    # Parse command-line arguments
+    # Parse command-line arguments (config)
     parser.add_argument('-c', '--config', dest='config', metavar='FILE', type=str,
         help='Path to YAML file containing parameters')
     
-    args = parser.parse_args()
 
+    # Parse command-line arguments (non-config)
+    parser.add_argument('-i','--infile', nargs="+", help='Path to files containing PSM table')
+    parser.add_argument('-o','--outfile', nargs="+", help='Path to ouput file')
+    parser.add_argument('-s',  '--plainseq', type=str, help='Name of the column containing peptide sequence')
+    parser.add_argument('-m',  '--mode', type=str, default="column", help='Select mode of execution: fasta/column')
+
+    parser.add_argument('-f',  '--fasta', type=str, help='Path to fasta file used to identify candidate proteins')
+    parser.add_argument('-d',  '--decoy', type=str, default="DECOY_", help='decoy prefix in fasta')
+    parser.add_argument('-ile',  '--isoleu', type=str, default="L", help='Convert L, I and J to the selected letter')
+    parser.add_argument('-cd',  '--cdesc', type=str, default="Protein_Description_Candidate", help='Name of the column with candidate descriptions')
+    parser.add_argument('-ca',  '--cacc', type=str, default="Protein_Accessions_Candidate", help='Name of the column with candidate accessions')
+    parser.add_argument('-md',  '--mdesc', type=str, default="Protein_Description_MPP", help='Name of the column with most probable descriptions')
+    parser.add_argument('-ma',  '--macc', type=str, default="Protein_Accession_MPP", help='Name of the column with most probable accessions')
+
+    
+    parser.add_argument('-q','--qcol', nargs="+", help='Name of the column(s) containing information of the candidate proteins')
+    parser.add_argument('-qm','--qmpp', nargs="+", help='Name of the output column(s) with the most probable protein')
+    parser.add_argument('-t',  '--sep', type=str, default=";", help='Character used as separator')
+
+    parser.add_argument('-w',  '--n_workers', type=int, default=2, help='Number of threads/n_workers (default: %(default)s)')
+    parser.add_argument('-v', dest='verbose', action='store_true', help="Increase output verbosity")
+
+    args = parser.parse_args()
     
     # Read YAML
-    with open(args.config, 'r') as f:
-        try:
-            paramsDict = yaml.safe_load(f)
-        except yaml.YAMLError as exc:
-            print(exc)
-            sys.exit(-1000)
-            
-    
-    logFile = os.path.splitext(paramsDict["infile"][0])[0]
-    logFile += f"_{suffixScript}.log"
-    #logFile = os.path.join('PA_logs', datetime.now().strftime("%Y%m%d%H%M%S")+'.log')#logFile
-    logging.basicConfig(level=logging.INFO,
-                        format='%(asctime)s - %(levelname)s - %(message)s',
-                        datefmt='%m/%d/%Y %I:%M:%S %p',
-                        handlers=[logging.FileHandler(logFile),
-                                    #logging.StreamHandler(self.stream),
-                                    logging.StreamHandler()])
+    if args.config:
+        with open(args.config, 'r') as f:
+            try:
+                paramsDict = yaml.safe_load(f)
+            except yaml.YAMLError as exc:
+                print(exc)
+                sys.exit(-1000)
 
+    else:
+        args.mode = "fasta" if args.fasta else "column" 
+
+        paramsDict = {
+            "infile": args.infile,
+            "outfile": args.outfile,
+            "seq_column": args.plainseq,
+            "mode": args.mode,
+            "n_cores": args.n_workers,
+
+            "fasta_params": {
+                "fasta": args.fasta,
+                "decoy_prefix": args.decoy,
+                "iso_leucine": args.isoleu,
+                "column_names": {
+                    "candidate_d": args.cdesc,
+                    "candidate_a": args.cacc,
+                    "mpp_d": args.mdesc,
+                    "mpp_a": args.macc
+                }
+            },
+
+            "column_params": {
+                "prot_column": args.qcol,
+                "prot_column_mpp": args.qmpp,
+                "sep_char": args.sep
+            }
+        }
+
+    # logging debug level. By default, info level
+    script_name = os.path.splitext(script_name)[0].upper()
+
+    if args.verbose:
+        logging.basicConfig(level=logging.DEBUG,
+                            format=script_name+' - '+str(os.getpid())+' - %(asctime)s - %(levelname)s - %(message)s',
+                            datefmt='%m/%d/%Y %I:%M:%S %p')
+    else:
+        logging.basicConfig(level=logging.INFO,
+                            format=script_name+' - '+str(os.getpid())+' - %(asctime)s - %(levelname)s - %(message)s',
+                            datefmt='%m/%d/%Y %I:%M:%S %p')
     
     logging.info('Start script: '+"{0}".format(" ".join([x for x in sys.argv])))
     t0 = time()
     main(paramsDict)
     m, s = divmod(time()-t0,60)
-    logging.info(f'End script: {m}m and {round(s,2)}s') 
+    logging.info(f'End script: {int(m)}m and {round(s,2)}s') 
