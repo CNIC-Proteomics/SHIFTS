@@ -4,16 +4,19 @@
 
 # Path to the file(s) containing PSM
 infile:
-  - Path/to/File1
-#  - Path/to/File2
-#  - Path/to/File3
+  - Path/To/File1
+  - Path/To/File2
 
+# Path to output file(s) containing PSM with most probable proteins
+outfile:
+  - Path/To/File1
+  - Path/To/File2
 
 # Name of the column containing peptide sequence
-seq_column: plain_peptide
+seq_column: Sequence
 
 # Select mode of execution: fasta/column
-mode: fasta
+mode: column
 
 
 #
@@ -22,13 +25,28 @@ mode: fasta
 fasta_params:
 
   # Path to fasta file used to identify candidate proteins
-  fasta: Path/to/File.fasta
+  fasta: Path/To/Fasta.fa
   
   # decoy prefix in fasta
   decoy_prefix: DECOY_
 
   # Convert L, I and J to the selected letter
   iso_leucine: L
+
+  # Column names
+  column_names: 
+
+    # name of the column containing candidate descriptions
+    candidate_d: PA_description_candidates
+
+    # name of the column containing candidate accessions
+    candidate_a: PA_accession_candidates
+
+    # name of the column with most probable description
+    mpp_d: MPP_description
+
+    # name of the column with most probable accession
+    mpp_a: MPP_accessions
 
 
 
@@ -41,6 +59,11 @@ column_params:
   prot_column:
     - Protein_Accessions
     - Protein_Descriptions
+  
+  # Name of the output column(s) with the most probable protein
+  prot_column_mpp:
+    - Protein_Accessions_MP
+    - Protein_Descriptions_MP
   
   # Character used to separate candidate proteins
   sep_char: ;
