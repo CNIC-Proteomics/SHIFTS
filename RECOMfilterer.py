@@ -39,7 +39,7 @@ def labelTargetDecoy(df, proteincolumn, decoyprefix):
     '''
     if 'Label' not in df:
         df.insert(df.columns.get_loc(proteincolumn)+1, 'Label', np.nan)
-    df['Label'] = df.apply(lambda x: 'Decoy' if (str(x[proteincolumn])[0:5]==decoyprefix) else 'Target', axis = 1)
+    df['Label'] = df.apply(lambda x: 'Decoy' if (str(x[proteincolumn])[0:len(decoyprefix)]==decoyprefix) else 'Target', axis = 1)
     return df
 
 def labelAD(df):
