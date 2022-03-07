@@ -150,10 +150,6 @@ def getCandidateProteins_in(q, pp_set, paramsDict):
     with concurrent.futures.ProcessPoolExecutor(max_workers=int(paramsDict['n_cores'])) as executor:
         sub_seqs = list(executor.map(pp_set_in_prot, repeat(pp_set), q_seq_chunks))
         sub_seqs = list(executor.map(pp_seq_in_acc_d, sub_seqs, acc_seq_chunks, d_seq_chunks)) 
-
-        #sub_seqs = list(executor.map(pp_set_in_prot, pp_set_chunks, repeat(q['seq'])))
-        #sub_seqs = list(executor.map(pp_seq_in_acc_d, sub_seqs, repeat(q['acc']), repeat(q['d']))) 
-    
     
     sub_seqs = add_flatten_lists(sub_seqs)
 
@@ -166,12 +162,13 @@ def split(a, n):
 
 
 def pp_set_in_prot(pp_set, seq_list):
-    return [[i in j for j in seq_list] for i in pp_set]
+    return [[n for n,j in enumerate(seq_list) if i in j] for i in pp_set]
+    #return [[i in j for j in seq_list] for i in pp_set]
 
 
 def pp_seq_in_acc_d(sub_seqs, acc_list, d_list):
-    return [list(zip(*filter(lambda x: x[0], zip(i, acc_list, d_list))))[1:] for i in sub_seqs]
-    #return [[' // '.join(j) for j in list(zip(*filter(lambda x: x[0], zip(i, acc_list, d_list))))[1:]] for i in sub_seqs]
+    return [list(zip(*[[acc_list[j], d_list[j]] for j in i])) for i in sub_seqs]
+    # return [list(zip(*filter(lambda x: x[0], zip(i, acc_list, d_list))))[1:] for i in sub_seqs]
 
 
 def add_flatten_lists(the_lists):
