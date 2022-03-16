@@ -172,13 +172,37 @@ def getDiffScoreCutOff(df, popt, t_increase):
     DiffScoreCutOff = cutoff.iloc[0]['DiffScoreAbs']
     return DiffScoreCutOff
 
-def filterRECOM(df, dsco, a_dm, r_dm, c_score, r_score, corr):
+def format_seq(c_seq, r_seq, dm, ftype, decimal_places):
+    '''
+    Make column with sequence and deltamass.    
+    '''
+    #df.apply(lambda x: x[seqdmcolumn].split('[')[0] + '[' + str(round(x[col_DM], decimal_places)) + ']' + x[seqdmcolumn].split(']')[1], axis = 1)
+    if ftype == "RECOM":
+        seqdm = r_seq
+    else:
+        seqdm = c_seq
+    if '[' in str(seqdm):
+        formatseq = str(seqdm).split('[')[0] + '[' + str(round(float(dm), decimal_places)) + ']' + str(seqdm).split(']')[1]
+    elif '_' in str(seqdm):
+        formatseq = str(seqdm).split('_')[0] + '_' + str(round(float(dm), decimal_places))
+    else:
+        sys.exit("Unrecognized sequence format in '" + str(config._sections['DMcalibrator']['seqdmcolumn']) + "' column!")
+    return formatseq
+
+def filterRECOM(df, dsco, a_dm, r_dm, c_score, r_score, corr, decimal_places):
     '''
     Keep only RECOM IDs that pass the DiffScore threshold.
     '''
     df['RECOMfiltered_DM'] = df.apply(lambda x: x[r_dm] if x['DiffScore']>=dsco else x[a_dm], axis = 1)
+    df['RECOMfiltered_MH'] = df.apply(lambda x: x['theo_mh'] + x['RECOMfiltered_DM'], axis = 1)
     df['RECOMfiltered_score'] = df.apply(lambda x: x[r_score] if x['DiffScore']>=dsco else x[c_score], axis = 1)
     df['RECOMfiltered_type'] = df.apply(lambda x: 'RECOM' if x['DiffScore']>=dsco else 'COMET', axis = 1)
+    #df['RECOMfiltered_peptide'] = df.apply(lambda x: x['Closest_peptide'] if x['DiffScore']>=dsco else x['Cal_Sequence'], axis = 1)
+    df['RECOMfiltered_peptide'] = df.apply(lambda x: format_seq(x['Cal_Sequence'],
+                                                                x['Closest_peptide'],
+                                                                x['RECOMfiltered_DM'],
+                                                                x['RECOMfiltered_type'],
+                                                                decimal_places), axis = 1)
     if corr:
         df['RECOMfiltered_score_corr'] = df.apply(lambda x: x['Closest_Xcorr_corr'] if x['DiffScore']>=dsco else x['xcorr_corr'], axis = 1)
     df = df.drop(['DiffScore', 'DiffScoreAbs'], 1)
@@ -195,6 +219,7 @@ def main(args):
     # Variables
     #t_decoy = float(config._sections['RECOMfilterer']['decoy_threshold'])
     #t_target = float(config._sections['RECOMfilterer']['target_threshold'])
+    decimal_places = int(config._sections['General']['decimal_places'])
     t_increase = float(config._sections['RECOMfilterer']['increase_threshold'])
     proteincolumn = config._sections['RECOMfilterer']['protein_column']
     assigneddm = config._sections['RECOMfilterer']['assigned_deltamass']
@@ -250,7 +275,7 @@ def main(args):
     # Apply DiffScoreCutOff (0.05 or t_increase) to whole df
     # Choose which Recom improvements to keep: only those that pass DiffScoreCutOff. Otherwise we keep Comet
     logging.info("Filtering by DiffScoreCutOff...")
-    df, recomized = filterRECOM(df, dsco, assigneddm, recomdm, comet_score, recom_score, corr_xcorr)
+    df, recomized = filterRECOM(df, dsco, assigneddm, recomdm, comet_score, recom_score, corr_xcorr, decimal_places)
     logging.info("RECOMized " + str(recomized[0]) + " PSMs (" + str(round((recomized[0]/df.shape[0])*100, 2)) + " % of total PSMs)")
     logging.info("\t\t" + str(recomized[1]) + " Targets")
     logging.info("\t\t" + str(recomized[2]) + " Decoys")
