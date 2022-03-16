@@ -222,7 +222,7 @@ def main(args):
     decimal_places = int(config._sections['General']['decimal_places'])
     t_increase = float(config._sections['RECOMfilterer']['increase_threshold'])
     proteincolumn = config._sections['RECOMfilterer']['protein_column']
-    assigneddm = config._sections['RECOMfilterer']['assigned_deltamass']
+    assigneddm = config._sections['RECOMfilterer']['comet_deltamass']
     recomdm = config._sections['RECOMfilterer']['recom_deltamass']
     decoyprefix = config._sections['RECOMfilterer']['decoyprefix']
     recom_score = config._sections['RECOMfilterer']['recom_score']
