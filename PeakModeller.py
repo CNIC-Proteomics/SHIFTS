@@ -37,7 +37,7 @@ def concatInfiles(infile):
     '''
     
     # read input file
-    df = pd.read_csv(infile, sep="\t", float_precision='high')
+    df = pd.read_csv(infile, sep="\t", float_precision='high', low_memory=False)
     #df['Experiment'] = infile[0]
     df['Filename'] = infile
     # add folder name into column
