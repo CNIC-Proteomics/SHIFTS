@@ -177,7 +177,6 @@ def main(args):
     peak_label = config._sections['PeakAssignator']['peak_label']
     orphan_label = config._sections['PeakAssignator']['orphan_label']
     seqdmcolumn = config._sections['PeakAssignator']['mod_peptide_column']
-    recomseqdmcolumn = config._sections['PeakAssignator']['recom_mod_peptide_column']
     assignseqcolumn = config._sections['PeakAssignator']['assign_seq_column']
     decimal_places = int(config._sections['General']['decimal_places'])
     
