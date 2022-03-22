@@ -138,24 +138,18 @@ def bin_operations(df, apex_list, ppm_max, peak_label, orphan_label,
     # df.to_csv(outfile, sep="\t", index=False)
     return df  
 
-def format_seq(cometseqdm, recomseqdm, recomtype, dm, decimal_places):
+def format_seq(seqdm, dm, decimal_places):
     '''
     Make column with sequence and deltamass.    
     '''
     #df.apply(lambda x: x[seqdmcolumn].split('[')[0] + '[' + str(round(x[col_DM], decimal_places)) + ']' + x[seqdmcolumn].split(']')[1], axis = 1)
-    if recomtype == "RECOM":
-        seqdm = recomseqdm
-        errorcol = 'recom_mod_peptide_column'
-    else:
-        seqdm = cometseqdm
-        errorcol = 'mod_peptide_column'
         
     if '[' in str(seqdm):
         formatseq = str(seqdm).split('[')[0] + '[' + str(round(float(dm), decimal_places)) + ']' + str(seqdm).split(']')[1]
     elif '_' in str(seqdm):
         formatseq = str(seqdm).split('_')[0] + '_' + str(round(float(dm), decimal_places))
     else:
-        sys.exit("Unrecognized sequence format in '" + str(config._sections['PeakAssignator'][errorcol]) + "' column!")
+        sys.exit("Unrecognized sequence format in '" + str(config._sections['PeakAssignator'][seqdm]) + "' column!")
     return formatseq
     
 #################
@@ -239,19 +233,18 @@ def main(args):
     # d_t.to_csv("kk_tail.tsv", sep="\t")
     
     # Make assignseqcolumn # TODO: make new seqcolumnXXXXX_xxxx
-    flag = 0
-    if recomseqdmcolumn == "" or recomseqdmcolumn not in df:
-        df["RECOMfiltered_type"] = "COMET"
-        flag = 1
-        recomseqdmcolumn = "placeholder"
-        df[recomseqdmcolumn] = "placeholder"
+    # flag = 0
+    # if recomseqdmcolumn == "" or recomseqdmcolumn not in df:
+    #     df["RECOMfiltered_type"] = "COMET"
+    #     flag = 1
+    #     recomseqdmcolumn = "placeholder"
+    #     df[recomseqdmcolumn] = "placeholder"
     if assignseqcolumn not in df:
         df.insert(df.columns.get_loc(seqdmcolumn)+2, assignseqcolumn, np.nan) 
-    df[assignseqcolumn] = df.apply(lambda x: format_seq(x[seqdmcolumn], x[recomseqdmcolumn], x["RECOMfiltered_type"],
-                                                        x[col_DM], decimal_places), axis = 1)
+    df[assignseqcolumn] = df.apply(lambda x: format_seq(x[seqdmcolumn], x[col_DM], decimal_places), axis = 1)
     #df[assignseqcolumn] = df.apply(lambda x: x[seqdmcolumn].split('[')[0] + '[' + str(round(x[col_DM], decimal_places)) + ']' + x[seqdmcolumn].split(']')[1], axis = 1)
-    if flag == 1:
-        df = df.drop(columns=["RECOMfiltered_type",recomseqdmcolumn])
+    # if flag == 1:
+    #     df = df.drop(columns=["RECOMfiltered_type",recomseqdmcolumn])
 
     logging.info("Write output file")
     # https://towardsdatascience.com/the-best-format-to-save-pandas-data-414dca023e0d
