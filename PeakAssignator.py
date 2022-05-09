@@ -74,14 +74,6 @@ def closest_peak(apex_list, delta_MH):
     peak = min(apex_list, key = lambda x : abs(x - delta_MH))
     return peak
 
-def closest_strpeak(apex_list, strapex_list, delta_MH):
-    '''
-    Assign a delta_MH value to the closest apex in a list
-    '''
-    peak = min(apex_list, key = lambda x : abs(x - delta_MH))
-    strpeak = strapex_list[list(apex_list).index(peak)]
-    return strpeak
-
     
 def find_orphans(ppm_max, theo_mass, peak, delta_MH, peak_label, orphan_label):
     '''
@@ -108,7 +100,7 @@ def find_orphans(ppm_max, theo_mass, peak, delta_MH, peak_label, orphan_label):
 #         deltamod = col_ClosestPeak
 #     return deltamod
 
-def bin_operations(df, apex_list, strapex_list, ppm_max, peak_label, orphan_label,
+def bin_operations(df, apex_list, ppm_max, peak_label, orphan_label,
                    col_ClosestPeak, col_CalDeltaMH, col_Peak, col_DM, col_TheoMass, col_ppm):
     '''
     Main function that handles the operations by BIN
@@ -129,10 +121,7 @@ def bin_operations(df, apex_list, strapex_list, ppm_max, peak_label, orphan_labe
     # create deltamass column # TODO: Recom
     df[col_DM] = df.apply(lambda x: x[col_CalDeltaMH] if (x[col_Peak]==orphan_label) else x[col_ClosestPeak], axis = 1)
     #df[col_DM] = df.apply(lambda x: get_deltamod(x[col_CalDeltaMH], x[col_Peak], orphan_label, x[col_ClosestPeak]), axis = 1)
-    # df = df.drop(col_ClosestPeak)
-    # df = df.rename({'ClosestPeakStr': col_ClosestPeak}, axis=1)
-    df[col_ClosestPeak] = df.apply(lambda x: closest_strpeak(apex_list, strapex_list, x[col_CalDeltaMH]), axis = 1)
-    # df["strtest"] = df.apply(lambda x: closest_strpeak(apex_list, strapex_list, x[col_CalDeltaMH]), axis = 1)
+    
     # def peak_FDR():
       # for each peak sort by xcorr (comet) # should we separate recom peaks?
       # for each peak separate targets and decoys
@@ -204,7 +193,6 @@ def main(args):
     #apex_file = "{}/{}".format(foldername, args.appfile)
     #apex_list = _extract_ApexList(apex_file)
     apex_list = _extract_ApexList(args.appfile)
-    strapex_list = [str(i) for i in apex_list]
 
     #logging.info("concat input files...")
     #logging.info("adding Experiment column (dirname of input file),")
@@ -223,7 +211,6 @@ def main(args):
     logging.info("Parallel the operations by bin")
     with concurrent.futures.ProcessPoolExecutor(max_workers=args.n_workers) as executor:        
         df = executor.map(bin_operations, list(df.groupby("bin")), repeat(apex_list),
-                                                                   repeat(strapex_list),
                                                                    repeat(ppm_max),
                                                                    repeat(peak_label),
                                                                    repeat( orphan_label),
