@@ -45,7 +45,7 @@ def firstAndLastApex(apex_list):
     new_apex_list.append(apex_list[-1])
     return new_apex_list
 
-def peakSelector(df_hist, slope, frequency, apex_points):
+def peakSelector(df_hist, slope, frequency, apex_points, decimal_places):
     
     ### MARK BINS ###
     
@@ -119,7 +119,7 @@ def peakSelector(df_hist, slope, frequency, apex_points):
             bin_subset.sort_values(by=['midpoint'], inplace=True)
             bin_subset.reset_index(drop=True, inplace=True)
             apex = interpolateApex(bin_subset)
-            apex_list.append(apex)
+            apex_list.append(round(apex, decimal_places))
         except:
             logging.info("Not enough bins to interpolate apex at" + str(apex_bin))
     
@@ -234,6 +234,7 @@ def main(args):
     '''
     
     # Main variables
+    decimal_places = int(config._sections['General']['decimal_places'])
     slope = float(config._sections['PeakSelector']['slope'])
     frequency = int(config._sections['PeakSelector']['frequency'])
     apex_points = int(config._sections['PeakSelector']['apex_points'])
@@ -253,7 +254,7 @@ def main(args):
     # df_hist.reset_index(drop=True, inplace=True)
     # df_hist = parseInterval(df_hist)
     # apex_list = peakApex(df_hist, apex_points)
-    apex_list = peakSelector(df_hist, slope, frequency, apex_points)
+    apex_list = peakSelector(df_hist, slope, frequency, apex_points, decimal_places)
     apex_info = str(len(apex_list)) + " peaks"
     logging.info(apex_info)
     
