@@ -251,15 +251,15 @@ def main(args):
     logging.info("Reading input file list...")
     if '*' in args.infile: # wildcard
         infiles = glob.glob(args.infile)
-        h_outfile = args.infile[:-4] + '_DMHistogram.txt'
-        t_outfile = args.infile[:-4] + '_DMTable.txt'
+        h_outfile = os.path.join(os.path.dirname(args.infile), 'PeakModeller_DMHistogram.txt')
+        t_outfile = os.path.join(os.path.dirname(args.infile), 'PeakModeller_DMTable.txt')
     else:
         with open(args.infile) as f:
             infiles = f.readlines()
         infiles = [x.strip() for x in infiles] # remove whitespace
         infiles = list(filter(None, infiles)) # remove empty lines
-        h_outfile = os.path.join(os.path.dirname(args.infile), 'PeakModeller_DMHistogram.txt')
-        t_outfile = os.path.join(os.path.dirname(args.infile), 'PeakModeller_DMTable.txt')
+        h_outfile = args.infile[:-4] + '_DMHistogram.txt'
+        t_outfile = args.infile[:-4] + '_DMTable.txt'
     for i in infiles:
         logging.info('\t' + str(os.path.basename(i)))
     
