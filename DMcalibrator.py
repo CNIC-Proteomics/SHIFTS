@@ -12,16 +12,18 @@ __email__ = "andrea.laguillo@cnic.es;jmrodriguezc@cnic.es"
 __status__ = "Development"
 
 # import modules
-import os
-import sys
-from pathlib import Path
-import configparser
 import argparse
+import configparser
+import glob
 import logging
 import math
-import pandas as pd
-from scipy.special import erfinv
 import numpy as np
+import os
+import pandas as pd
+from pathlib import Path
+from scipy.special import erfinv
+import sys
+
 pd.options.mode.chained_assignment = None  # default='warn'
 
 # os.chdir(r"C:\Users\Andrea\Desktop\SHIFTS-4")
@@ -392,25 +394,49 @@ if __name__ == '__main__':
     if config.getint('Logging', 'create_ini') == 1:
         with open(os.path.dirname(args.infile) + '/SHIFTS.ini', 'w') as newconfig:
             config.write(newconfig)
+    
+    if '*' in args.infile: # wildcard
+        flist = glob.glob(args.infile)
+        for f in flist:
+            args.infile = f
+            # logging debug level. By default, info level
+            log_file = outfile = args.infile[:-4] + '_log.txt'
+            log_file_debug = outfile = args.infile[:-4] + '_log_debug.txt'
+            if args.verbose:
+                logging.basicConfig(level=logging.DEBUG,
+                                    format='%(asctime)s - %(levelname)s - %(message)s',
+                                    datefmt='%m/%d/%Y %I:%M:%S %p',
+                                    handlers=[logging.FileHandler(log_file_debug),
+                                              logging.StreamHandler()])
+            else:
+                logging.basicConfig(level=logging.INFO,
+                                    format='%(asctime)s - %(levelname)s - %(message)s',
+                                    datefmt='%m/%d/%Y %I:%M:%S %p',
+                                    handlers=[logging.FileHandler(log_file),
+                                              logging.StreamHandler()])
         
-
-    # logging debug level. By default, info level
-    log_file = outfile = args.infile[:-4] + '_log.txt'
-    log_file_debug = outfile = args.infile[:-4] + '_log_debug.txt'
-    if args.verbose:
-        logging.basicConfig(level=logging.DEBUG,
-                            format='%(asctime)s - %(levelname)s - %(message)s',
-                            datefmt='%m/%d/%Y %I:%M:%S %p',
-                            handlers=[logging.FileHandler(log_file_debug),
-                                      logging.StreamHandler()])
+            # start main function
+            logging.info('start script: '+"{0}".format(" ".join([x for x in sys.argv])))
+            main(args)
+        logging.info('end script')
     else:
-        logging.basicConfig(level=logging.INFO,
-                            format='%(asctime)s - %(levelname)s - %(message)s',
-                            datefmt='%m/%d/%Y %I:%M:%S %p',
-                            handlers=[logging.FileHandler(log_file),
-                                      logging.StreamHandler()])
-
-    # start main function
-    logging.info('start script: '+"{0}".format(" ".join([x for x in sys.argv])))
-    main(args)
-    logging.info('end script')
+        # logging debug level. By default, info level
+        log_file = outfile = args.infile[:-4] + '_log.txt'
+        log_file_debug = outfile = args.infile[:-4] + '_log_debug.txt'
+        if args.verbose:
+            logging.basicConfig(level=logging.DEBUG,
+                                format='%(asctime)s - %(levelname)s - %(message)s',
+                                datefmt='%m/%d/%Y %I:%M:%S %p',
+                                handlers=[logging.FileHandler(log_file_debug),
+                                          logging.StreamHandler()])
+        else:
+            logging.basicConfig(level=logging.INFO,
+                                format='%(asctime)s - %(levelname)s - %(message)s',
+                                datefmt='%m/%d/%Y %I:%M:%S %p',
+                                handlers=[logging.FileHandler(log_file),
+                                          logging.StreamHandler()])
+    
+        # start main function
+        logging.info('start script: '+"{0}".format(" ".join([x for x in sys.argv])))
+        main(args)
+        logging.info('end script')

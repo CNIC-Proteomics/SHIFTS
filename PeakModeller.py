@@ -16,6 +16,7 @@ import os
 import sys
 import argparse
 import configparser
+import glob
 import logging
 import pandas as pd
 import numpy as np
@@ -248,10 +249,19 @@ def main(args):
     smooth_points = int(config._sections['PeakModeller']['smooth_points'])
     
     logging.info("Reading input file list...")
-    with open(args.infile) as f:
-        infiles = f.readlines()
-    infiles = [x.strip() for x in infiles] # remove whitespace
-    infiles = list(filter(None, infiles)) # remove empty lines
+    if '*' in args.infile: # wildcard
+        infiles = glob.glob(args.infile)
+        h_outfile = args.infile[:-4] + '_DMHistogram.txt'
+        t_outfile = args.infile[:-4] + '_DMTable.txt'
+    else:
+        with open(args.infile) as f:
+            infiles = f.readlines()
+        infiles = [x.strip() for x in infiles] # remove whitespace
+        infiles = list(filter(None, infiles)) # remove empty lines
+        h_outfile = os.path.join(os.path.dirname(args.infile), 'PeakModeller_DMHistogram.txt')
+        t_outfile = os.path.join(os.path.dirname(args.infile), 'PeakModeller_DMTable.txt')
+    for i in infiles:
+        logging.info('\t' + str(os.path.basename(i)))
     
     logging.info("Concat input files...")
     with concurrent.futures.ProcessPoolExecutor(max_workers=args.n_workers) as executor:            
@@ -273,11 +283,10 @@ def main(args):
         # check which bins pass
     logging.info("Writing output files...")
     # write DMhistogram
-    outfile = args.infile[:-4] + '_DMHistogram.txt'
-    bins_df.to_csv(outfile, index=False, sep='\t', encoding='utf-8')
+    bins_df.to_csv(h_outfile, index=False, sep='\t', encoding='utf-8')
     # write DMtable (input for PeakSelector)
-    outfile = args.infile[:-4] + '_DMTable.txt'
-    df.to_csv(outfile, index=False, sep='\t', encoding='utf-8')
+    df = df.astype(str)
+    df.to_csv(t_outfile, index=False, sep='\t', encoding='utf-8')
     logging.info("Peak Modelling finished")
 
 if __name__ == '__main__':
@@ -325,8 +334,12 @@ if __name__ == '__main__':
             config.write(newconfig)
         
     # logging debug level. By default, info level
-    log_file = outfile = args.infile[:-4] + '_log.txt'
-    log_file_debug = outfile = args.infile[:-4] + '_log_debug.txt'
+    if '*' in args.infile: # wildcard
+        log_file = os.path.join(os.path.dirname(args.infile), 'PeakModeller_log.txt')
+        log_file_debug = os.path.join(os.path.dirname(args.infile), 'PeakModeller_log_debug.txt')
+    else:
+        log_file = args.infile[:-4] + '_log.txt'
+        log_file_debug = args.infile[:-4] + '_log_debug.txt'
     if args.verbose:
         logging.basicConfig(level=logging.DEBUG,
                             format='%(asctime)s - %(levelname)s - %(message)s',

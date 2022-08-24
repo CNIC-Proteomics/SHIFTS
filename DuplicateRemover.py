@@ -13,6 +13,7 @@ __status__ = "Development"
 
 # import modules
 import argparse
+import glob
 import logging
 import pandas as pd
 import sys
@@ -27,7 +28,7 @@ def main(args):
     score = args.score
     spscore = args.spscore
     
-    logging.info('Reading input file')
+    logging.info('Reading input file ' + str(args.infile))
     df = pd.read_csv(args.infile, sep='\t', skiprows=0, float_precision='high', low_memory=False)
     
     logging.info('Removing duplicates')
@@ -39,8 +40,8 @@ def main(args):
     df.sort_values([scan, num, score, spscore], ascending=[True, True, False, False], inplace=True)
     df.drop_duplicates(subset=[scan], keep='first', inplace=True)
     
-    logging.info('Writing output file')
     outfile = args.infile[:-4] + '_Unique.txt'
+    logging.info('Writing output file ' + str(outfile))
     df.to_csv(outfile, index=False, sep='\t', encoding='utf-8')
     
     logging.info('Done')
@@ -65,27 +66,55 @@ if __name__ == '__main__':
 
     parser.add_argument('-v', dest='verbose', action='store_true', help='Increase output verbosity')
     args = parser.parse_args() 
+    
+    if '*' in args.infile: # wildcard
+        flist = glob.glob(args.infile)
+        for f in flist:
+            args.infile = f
+            # logging debug level. By default, info level
+            log_file = args.infile[:-4] + '_log.txt'
+            log_file_debug = args.infile[:-4] + '_log_debug.txt'
+            # Logging debug level. By default, info level
+            log_file = args.infile[:-4] + '_log.txt'
+            log_file_debug = args.infile[:-4] + '_log_debug.txt'
+            if args.verbose:
+                logging.basicConfig(level=logging.DEBUG,
+                                    format='%(asctime)s - %(levelname)s - %(message)s',
+                                    datefmt='%m/%d/%Y %I:%M:%S %p',
+                                    handlers=[logging.FileHandler(log_file_debug),
+                                              logging.StreamHandler()])
+            else:
+                logging.basicConfig(level=logging.INFO,
+                                    format='%(asctime)s - %(levelname)s - %(message)s',
+                                    datefmt='%m/%d/%Y %I:%M:%S %p',
+                                    handlers=[logging.FileHandler(log_file),
+                                              logging.StreamHandler()])
 
-    # logging debug level. By default, info level
-    log_file = args.infile[:-4] + '_log.txt'
-    log_file_debug = args.infile[:-4] + '_log_debug.txt'
-    # Logging debug level. By default, info level
-    log_file = args.infile[:-4] + '_log.txt'
-    log_file_debug = args.infile[:-4] + '_log_debug.txt'
-    if args.verbose:
-        logging.basicConfig(level=logging.DEBUG,
-                            format='%(asctime)s - %(levelname)s - %(message)s',
-                            datefmt='%m/%d/%Y %I:%M:%S %p',
-                            handlers=[logging.FileHandler(log_file_debug),
-                                      logging.StreamHandler()])
+            # start main function
+            logging.info('start script: '+'{0}'.format(' '.join([x for x in sys.argv])))
+            main(args)
+        logging.info('end script')
     else:
-        logging.basicConfig(level=logging.INFO,
-                            format='%(asctime)s - %(levelname)s - %(message)s',
-                            datefmt='%m/%d/%Y %I:%M:%S %p',
-                            handlers=[logging.FileHandler(log_file),
-                                      logging.StreamHandler()])
-
-    # start main function
-    logging.info('start script: '+'{0}'.format(' '.join([x for x in sys.argv])))
-    main(args)
-    logging.info('end script')
+        # logging debug level. By default, info level
+        log_file = args.infile[:-4] + '_log.txt'
+        log_file_debug = args.infile[:-4] + '_log_debug.txt'
+        # Logging debug level. By default, info level
+        log_file = args.infile[:-4] + '_log.txt'
+        log_file_debug = args.infile[:-4] + '_log_debug.txt'
+        if args.verbose:
+            logging.basicConfig(level=logging.DEBUG,
+                                format='%(asctime)s - %(levelname)s - %(message)s',
+                                datefmt='%m/%d/%Y %I:%M:%S %p',
+                                handlers=[logging.FileHandler(log_file_debug),
+                                          logging.StreamHandler()])
+        else:
+            logging.basicConfig(level=logging.INFO,
+                                format='%(asctime)s - %(levelname)s - %(message)s',
+                                datefmt='%m/%d/%Y %I:%M:%S %p',
+                                handlers=[logging.FileHandler(log_file),
+                                          logging.StreamHandler()])
+    
+        # start main function
+        logging.info('start script: '+'{0}'.format(' '.join([x for x in sys.argv])))
+        main(args)
+        logging.info('end script')
