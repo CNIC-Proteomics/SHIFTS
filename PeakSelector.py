@@ -86,8 +86,8 @@ def peakSelector(df_hist, slope, frequency, apex_points, decimal_places):
         for k in around_apex:
             df_hist.at[k, 'peak_group'] = 1
             
-    df_hist = df_hist.drop('previous', 1)
-    df_hist = df_hist.drop('next', 1)
+    df_hist = df_hist.drop(columns='previous')
+    df_hist = df_hist.drop(columns='next')
     
     ### FILTER PEAKS ###
     
@@ -113,9 +113,9 @@ def peakSelector(df_hist, slope, frequency, apex_points, decimal_places):
         bin_subset = df_hist.loc[df_hist['midpoint'] == apex_bin]
         try:
             for i in range(1, before + 1):
-                bin_subset = bin_subset.append(df_hist.loc[df_hist['midpoint'].shift(-i) == apex_bin], ignore_index=True)
+                bin_subset = pd.concat([bin_subset, pd.DataFrame(df_hist.loc[df_hist['midpoint'].shift(-i) == apex_bin])], ignore_index=True)
             for i in range(1, after + 1):
-                bin_subset = bin_subset.append(df_hist.loc[df_hist['midpoint'].shift(i) == apex_bin], ignore_index=True)
+                bin_subset = pd.concat([bin_subset, pd.DataFrame(df_hist.loc[df_hist['midpoint'].shift(i) == apex_bin])], ignore_index=True)
             bin_subset.sort_values(by=['midpoint'], inplace=True)
             bin_subset.reset_index(drop=True, inplace=True)
             apex = interpolateApex(bin_subset)
@@ -134,8 +134,8 @@ def filterPeaks(df_hist, slope, frequency):
     df_hist['previous'] = df_hist['slope1'].shift()
     df_hist['next'] = df_hist['slope1'].shift(-1)
     df_hist['apex'] = df_hist.apply(lambda x: 1 if (x['slope1']<0 and x['previous']>0) or (x['slope1']>0 and x['next']<0) else 0, axis = 1)
-    df_hist = df_hist.drop('previous', 1)
-    df_hist = df_hist.drop('next', 1)
+    df_hist = df_hist.drop(columns='previous')
+    df_hist = df_hist.drop(columns='next')
     
     df_hist1 = df_hist[abs(df_hist['slope1']) >= slope] # keep those whose slope1 is over the threshold
     df_hist2 = df_hist[df_hist['apex'] == 1] # keep those where there is a sign change
