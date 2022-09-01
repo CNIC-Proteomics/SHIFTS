@@ -15,7 +15,9 @@ __status__ = "Development"
 import argparse
 import glob
 import logging
+import os
 import pandas as pd
+from pathlib import Path
 import sys
 
 def main(args):
@@ -32,6 +34,8 @@ def main(args):
     logging.info('Raw: ' + first_line[1])
     logging.info('Date: ' + first_line[2])
     logging.info('Database: ' + first_line[3])
+    
+    df["Raw"] = os.path.basename(Path(args.infile))
     
     outfile = args.infile[:-4] + '_SHIFTS.txt'
     logging.info('Writing output file ' + str(outfile))
