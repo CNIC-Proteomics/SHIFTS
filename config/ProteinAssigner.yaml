@@ -4,19 +4,34 @@
 
 # Path to the file(s) containing PSM
 infile:
-  - Path/To/File1
-  - Path/To/File2
+   - /path/to/infile1.tsv
+   - /path/to/infile2.tsv
 
 # Path to output file(s) containing PSM with most probable proteins
-outfile:
-  - Path/To/File1
-  - Path/To/File2
+outfile:  
+   - /path/to/outfile1.tsv
+   - /path/to/outfile2.tsv
 
 # Name of the column containing peptide sequence
-seq_column: Sequence
+seq_column: plain_peptide
+
+
+# name of the output column with most probable accession
+mpp_a: MPP_accessions
+
+  
+# name of the output column with most probable description
+mpp_d: MPP_description
+
+
+# regular expressions to filter in case of ties --> "/regex1/regex2/regex3/.../"
+regex: /^sp/Sus scrofa/^((?!fragment).)*$/
+
+
+#Sequence
 
 # Select mode of execution: fasta/column
-mode: column
+mode: fasta
 
 
 #
@@ -25,29 +40,19 @@ mode: column
 fasta_params:
 
   # Path to fasta file used to identify candidate proteins
-  fasta: Path/To/Fasta.fa
+  fasta: /path/to/fasta.fa
   
   # decoy prefix in fasta
   decoy_prefix: DECOY_
 
   # Convert L, I and J to the selected letter
   iso_leucine: L
-
-  # Column names
-  column_names: 
-
-    # name of the column containing candidate descriptions
-    candidate_d: PA_description_candidates
-
-    # name of the column containing candidate accessions
-    candidate_a: PA_accession_candidates
-
-    # name of the column with most probable description
-    mpp_d: MPP_description
-
-    # name of the column with most probable accession
-    mpp_a: MPP_accessions
-
+    
+  # name of the output column containing candidate accessions
+  candidate_a: PA_accession_candidates
+  
+  # name of the output column containing candidate descriptions
+  candidate_d: PA_description_candidates
 
 
 #
@@ -55,19 +60,15 @@ fasta_params:
 #
 column_params:
 
-  # Name of the column(s) containing information of the candidate proteins
-  prot_column:
-    - Protein_Accessions
-    - Protein_Descriptions
-  
-  # Name of the output column(s) with the most probable protein
-  prot_column_mpp:
-    - Protein_Accessions_MP
-    - Protein_Descriptions_MP
-  
+  # name of the input column containing candidate accessions
+  candidate_a: PA_accession_candidates
+
+  # name of the input column containing candidate descriptions
+  candidate_d: PA_description_candidates
+
   # Character used to separate candidate proteins
   sep_char: ;
 
 
 # Number of cores
-n_cores: 4
+n_cores: 8
