@@ -559,9 +559,15 @@ if __name__ == '__main__':
             epilog=f'''\
 Created 2021-11-24, Rafael Barrero Rodriguez
 Usage:
-    {script_name} -c "path to YAML config file"
-    {script_name} -i "Path\To\Input.File" -o "Path\To\Output.File" -s "Sequence" -q "Protein_Accessions" "Protein_Descriptions" -qm "Protein_Accessions_MPP" "Protein_Descriptions_MPP" -w 2
-    {script_name} -i "Path\To\Input.File" -o "Path\To\Output.File" -s "Sequence" -f "Path\To\Fasta.fa" -cd "Protein_Description_Candidate" -ca "Protein_Accession_Candidate" -ma "Protein_Accessions_MPP" -md "Protein_Descriptions_MPP" -w 2
+    FROM CONFIG:
+        {script_name} -c "path to YAML config file"
+    
+    FROM COMMAND LINE (iSanXoT):
+        Column mode:
+        {script_name} -i "Path\To\Input.File" -o "Path\To\Output.File" -s "Sequence" -q "Protein_Accession_Candidate" -qm "Protein_Accessions_MPP" -w 4
+    
+        Fasta mode:
+        {script_name} -i "Path\To\Input.File" -o "Path\To\Output.File" -s "Sequence" -f "Path\To\Fasta.fa" -cd "Protein_Description_Candidate" -ca "Protein_Accession_Candidate" -qm "Protein_Accessions_MPP" -md "Protein_Descriptions_MPP" -w 4
 ''')
 
 
@@ -636,7 +642,7 @@ Usage:
             "n_cores": args.n_workers,
         }
     
-    paramsDict['regex'] = [re.compile(i) for i in re.split(r'(?<!\\)/', paramsDict['regex'].strip('/ '))]
+    paramsDict['regex'] = [re.compile(i, re.IGNORECASE) for i in re.split(r'(?<!\\)/', paramsDict['regex'].strip('/ '))]
         
 
     # logging debug level. By default, info level
