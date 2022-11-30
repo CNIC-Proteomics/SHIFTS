@@ -295,18 +295,23 @@ def _getMPPindex(l, df, q2len, paramsDict):
         
         
         # filter by seq length
-        if paramsDict['mode'] == 'fasta':
+        if paramsDict['mode'] == 'fasta' and paramsDict['len_seq'] in [-1,1]:
             l = [
              (p, np.array(acc), np.array(ix), [q2len[acci] for acci in acc])
              for p, acc, ix in l
              ]
             
-            
-            l = [
-             (p, acc, ix, np.argwhere(le == np.amin(le)).flatten().tolist())
-             for p, acc, ix, le in l
-             ]
-            
+            if paramsDict['len_seq']==-1:
+                l = [
+                 (p, acc, ix, np.argwhere(le == np.amin(le)).flatten().tolist())
+                 for p, acc, ix, le in l
+                 ]
+            elif paramsDict['len_seq']==1:
+                l = [
+                 (p, acc, ix, np.argwhere(le == np.amax(le)).flatten().tolist())
+                 for p, acc, ix, le in l
+                 ]
+                
             l = [
              (p, acc[leix].tolist(), ix[leix].tolist())
              for p, acc, ix, leix in l
@@ -583,6 +588,7 @@ Usage:
     parser.add_argument('-md',  '--mdesc', type=str, default="Protein_Description_MPP", help='Name of the output column with most probable descriptions')
     parser.add_argument('-qm',  '--macc', type=str, default="Protein_Accession_MPP", help='Name of the output column with most probable accessions')
     parser.add_argument('-rx',  '--regex', type=str, default="", help='Regex applied in case of ties (/regex1/regex2/regex3/.../')
+    parser.add_argument('-lx',  '--len', type=int, default=0, help='Consider sequence length in prioritization')
     parser.add_argument('-m',  '--mode', type=str, default="column", help='Select mode of execution: fasta/column')
 
     parser.add_argument('-f',  '--fasta', type=str, help='Path to fasta file used to identify candidate proteins')
@@ -623,6 +629,7 @@ Usage:
             "mpp_d": args.mdesc,
             "mpp_a": args.macc,
             "regex": args.regex,
+            "len_seq": args.len,
             "mode": args.mode,
             
             "fasta_params": {
