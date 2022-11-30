@@ -4,16 +4,14 @@
 
 # Path to the file(s) containing PSM
 infile:
-   - /path/to/infile1.tsv
-   - /path/to/infile2.tsv
+    - path/to/infile
 
 # Path to output file(s) containing PSM with most probable proteins
 outfile:  
-   - /path/to/outfile1.tsv
-   - /path/to/outfile2.tsv
+   - path/to/outfile
 
 # Name of the column containing peptide sequence
-seq_column: plain_peptide
+seq_column: Sequence
 
 
 # name of the output column with most probable accession
@@ -28,6 +26,12 @@ mpp_d: MPP_description
 regex: /^sp/Sus scrofa/^((?!fragment).)*$/
 
 
+# Prioritize shortest/longest sequence
+# len_seq = -1 --> Prioritize shortest
+# len_seq = 1 --> Prioritize longest
+# len_seq = 0 --> Not considered
+len_seq: 0
+
 #Sequence
 
 # Select mode of execution: fasta/column
@@ -40,7 +44,7 @@ mode: fasta
 fasta_params:
 
   # Path to fasta file used to identify candidate proteins
-  fasta: /path/to/fasta.fa
+  fasta: S:\U_Proteomica\UNIDAD\software\MacrosRafa\data\Proteomics\GroupTools\ProteinAssigner\tests\PTM_test\test6\human_pig_202105_pro-sw-tr.target-decoy.fasta
   
   # decoy prefix in fasta
   decoy_prefix: DECOY_
