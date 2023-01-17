@@ -38,7 +38,8 @@ def readInfile(infile, scorecolumn, mzcolumn, zcolumn, seqcolumn, proteincolumn)
     '''    
     Read input file to dataframe.
     '''
-    df = pd.read_csv(infile, sep="\t", float_precision='high', low_memory=False) # TODO: option for header/no header
+    # df = pd.read_csv(infile, sep="\t", float_precision='high', low_memory=False) # TODO: option for header/no header
+    df = pd.read_feather(infile)
     #df = pd.read_csv(infile, sep="\t", float_precision='high')
     # Cleanup
     df = df[df[scorecolumn].notna()]
@@ -395,6 +396,7 @@ if __name__ == '__main__':
         with open(os.path.dirname(args.infile) + '/SHIFTS.ini', 'w') as newconfig:
             config.write(newconfig)
     
+    # TODO: check and read only feather files
     if '*' in args.infile: # wildcard
         flist = glob.glob(args.infile)
         for f in flist:

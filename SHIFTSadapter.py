@@ -18,6 +18,7 @@ import logging
 import os
 import pandas as pd
 from pathlib import Path
+import pyarrow
 import sys
 
 def main(args):
@@ -37,9 +38,11 @@ def main(args):
     
     df["Raw"] = os.path.basename(Path(args.infile))
     
-    outfile = args.infile[:-4] + '_SHIFTS.txt'
+    outfile = args.infile[:-4] + '_SHIFTS.feather'
     logging.info('Writing output file ' + str(outfile))
-    df.to_csv(outfile, index=False, sep='\t', encoding='utf-8')
+    # df.to_csv(outfile, index=False, sep='\t', encoding='utf-8')
+    df = df.reset_index()
+    df.to_feather(outfile)
     
     logging.info('Done')
     
