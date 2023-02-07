@@ -29,7 +29,7 @@ def main(args):
     spscore = args.spscore
     
     logging.info('Reading input file ' + str(args.infile))
-    df = pd.read_csv(args.infile, sep='\t', skiprows=0, float_precision='high', low_memory=False)
+    df = pd.read_feather(args.infile)
     
     logging.info('Removing duplicates')
     # grouped_df = df.groupby([scan])
@@ -39,10 +39,11 @@ def main(args):
     #     scan.sort_values(by=[num], inplace=True, ascending=True)
     df.sort_values([scan, num, score, spscore], ascending=[True, True, False, False], inplace=True)
     df.drop_duplicates(subset=[scan], keep='first', inplace=True)
+    df.reset_index(drop=True, inplace=True)
     
-    outfile = args.infile[:-4] + '_Unique.txt'
+    outfile = args.infile[:-8] + '_Unique.txt'
     logging.info('Writing output file ' + str(outfile))
-    df.to_csv(outfile, index=False, sep='\t', encoding='utf-8')
+    df.to_feather(outfile)
     
     logging.info('Done')
     
@@ -72,11 +73,11 @@ if __name__ == '__main__':
         for f in flist:
             args.infile = f
             # logging debug level. By default, info level
-            log_file = args.infile[:-4] + '_log.txt'
-            log_file_debug = args.infile[:-4] + '_log_debug.txt'
+            log_file = args.infile[:-8] + '_log.txt'
+            log_file_debug = args.infile[:-8] + '_log_debug.txt'
             # Logging debug level. By default, info level
-            log_file = args.infile[:-4] + '_log.txt'
-            log_file_debug = args.infile[:-4] + '_log_debug.txt'
+            log_file = args.infile[:-8] + '_log.txt'
+            log_file_debug = args.infile[:-8] + '_log_debug.txt'
             if args.verbose:
                 logging.basicConfig(level=logging.DEBUG,
                                     format='%(asctime)s - %(levelname)s - %(message)s',
@@ -96,11 +97,11 @@ if __name__ == '__main__':
         logging.info('end script')
     else:
         # logging debug level. By default, info level
-        log_file = args.infile[:-4] + '_log.txt'
-        log_file_debug = args.infile[:-4] + '_log_debug.txt'
+        log_file = args.infile[:-8] + '_log.txt'
+        log_file_debug = args.infile[:-8] + '_log_debug.txt'
         # Logging debug level. By default, info level
-        log_file = args.infile[:-4] + '_log.txt'
-        log_file_debug = args.infile[:-4] + '_log_debug.txt'
+        log_file = args.infile[:-8] + '_log.txt'
+        log_file_debug = args.infile[:-8] + '_log_debug.txt'
         if args.verbose:
             logging.basicConfig(level=logging.DEBUG,
                                 format='%(asctime)s - %(levelname)s - %(message)s',
