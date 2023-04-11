@@ -76,7 +76,7 @@ def make_groups(df, groups):
         group_dict.setdefault(currentid, [])
         group_dict[currentid].append(currentvalue)
     #df['Experiment'] = np.vectorize(_match_file)(group_dict, df['Filename'])[0]
-    df['Experiment'] = np.vectorize(_match_file)(group_dict, df['Filename'])
+    df['Experiment'] = np.vectorize(_match_file)(group_dict, df['Raw'])
     #df['Batch'] = np.vectorize(_match_file)(group_dict, df['Filename'])[1]
     if 'N/A' in df['Experiment'].unique():
         logging.info('Warning: ' + str(df['Experiment'].value_counts()['N/A']) + ' rows could not be assigned to an experiment! They will still be used to calculate Local and Peak FDR.') # They will all be grouped together for FDR calculations
@@ -344,17 +344,28 @@ def main(args):
     
     logging.info("Calculate FDR")
     # df = get_global_FDR(df, score_column, recom_data)
-    with concurrent.futures.ProcessPoolExecutor(max_workers=n_workers) as executor:
-        df = executor.map(get_global_FDR, list(df.groupby('Experiment')), repeat(score_column),
-                                                                          #repeat(recom_data),
-                                                                          repeat(peak_label),
-                                                                          repeat(col_Peak),
-                                                                          repeat(closestpeak_column),
-                                                                          repeat(dm_column),
-                                                                          repeat(dm_region_limit),
-                                                                          repeat(peak_outlier_value),
-                                                                          repeat(n_workers))
-    df = pd.concat(df)
+    if args.ignore_groups:
+        df = get_global_FDR((df, "ALL"),
+                            score_column,
+                            peak_label,
+                            col_Peak,
+                            closestpeak_column,
+                            dm_column,
+                            dm_region_limit,
+                            peak_outlier_value,
+                            n_workers)
+    else:
+        with concurrent.futures.ProcessPoolExecutor(max_workers=n_workers) as executor:
+            df = executor.map(get_global_FDR, list(df.groupby('Experiment')), repeat(score_column),
+                                                                              #repeat(recom_data),
+                                                                              repeat(peak_label),
+                                                                              repeat(col_Peak),
+                                                                              repeat(closestpeak_column),
+                                                                              repeat(dm_column),
+                                                                              repeat(dm_region_limit),
+                                                                              repeat(peak_outlier_value),
+                                                                              repeat(n_workers))
+        df = pd.concat(df)
     
     logging.info("Calculating Local and Peak FDR")
     with concurrent.futures.ProcessPoolExecutor(max_workers=n_workers) as executor:        
@@ -432,6 +443,7 @@ if __name__ == '__main__':
     parser.add_argument('-s',  '--score_column', help='Name of column with score for FDR calculation')
     parser.add_argument('-p',  '--peak_column', help='Name of column containing the peak/orphan labels')
     parser.add_argument('-po', '--peak_outlier_value', help='Peak FDR value to be assigned to orphans')
+    parser.add_argument('-g', '--ignore_groups', action='store_true', help='Ignore experiment table groups when calculating global FDR')
     #parser.add_argument('-f',  '--fdr_filter', help='FDR value to filter by')
     #parser.add_argument('-t',  '--target_filter', help='Filter targets, 0=no 1=yes')
     #parser.add_argument('-r',  '--recom_data', help='Score for FDR calculation: 0=Xcorr, 1=cXcorr (default: %(default)s)')
