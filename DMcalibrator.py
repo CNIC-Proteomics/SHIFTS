@@ -164,7 +164,8 @@ def getSysError(df_filtered, mzcolumn, calibrated):
     
     if calibrated:
         phi = math.sqrt(2) * erfinv(0.5)
-        mad = df_filtered['cal_ppm'].mad()
+        # mad = df_filtered['cal_ppm'].mad() # Deprecated
+        mad = (df_filtered['cal_ppm'] - df_filtered['cal_ppm'].mean()).abs().mean()
         avg_ppm_error = (mad / phi) 
         logging.info("Systematic error after calibration: " + "{:.4e}".format(sys_error))
         logging.info("Alpha after calibration: " + "{:.4e}".format(alpha))
