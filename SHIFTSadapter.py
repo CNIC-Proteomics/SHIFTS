@@ -36,7 +36,7 @@ def main(args):
     logging.info('Date: ' + first_line[2])
     logging.info('Database: ' + first_line[3])
     
-    df["Raw"] = os.path.basename(Path(args.infile))
+    df["Raw"] = '.'.join(os.path.basename(Path(args.infile)).split(".")[:-1])
     
     outfile = args.infile[:-4] + '_SHIFTS.feather'
     logging.info('Writing output file ' + str(outfile))

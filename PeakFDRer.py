@@ -396,7 +396,7 @@ def main(args):
     df['Filename'] = df.apply(lambda x: x['Filename'].split('\\')[-1].split('/')[-1][:-4], axis=1)
     # Split in folders by Experiment
 
-    logging.info("Write output file:")
+    logging.info("Write output file...")
     outfile = args.infile[:-4] + '_FDR.txt'
     df.to_csv(outfile, index=False, sep='\t', encoding='utf-8')
     # dfs = df.groupby('Batch')
