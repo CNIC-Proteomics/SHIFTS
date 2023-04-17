@@ -345,7 +345,7 @@ def main(args):
     logging.info("Calculate FDR")
     # df = get_global_FDR(df, score_column, recom_data)
     if args.ignore_groups:
-        df = get_global_FDR((df, "ALL"),
+        df = get_global_FDR(("ALL", df),
                             score_column,
                             peak_label,
                             col_Peak,
