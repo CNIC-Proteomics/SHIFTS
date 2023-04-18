@@ -82,6 +82,13 @@ def make_groups(df, groups):
         logging.info('Warning: ' + str(df['Experiment'].value_counts()['N/A']) + ' rows could not be assigned to an experiment! They will still be used to calculate Local and Peak FDR.') # They will all be grouped together for FDR calculations
     return df
 
+def extractApexList(file):
+    with open(file) as f:
+        data = f.read().split('\n')
+        data = [x for x in data if x.strip()]
+        data = np.array(data, dtype=np.float64)
+        return data
+
 def get_spire_FDR(df, score_column, col_Peak, peak_outlier_value, xcorr_type): #TODO: we don't have xcorr_type, we have recom_data, take out column names
     #This will be for the group of scans in a peak that are contained within 
     #one recom-assignated theoretical deltamass. Then, when we do peak_FDR, we
@@ -306,8 +313,7 @@ def main(args):
     col_Peak = config._sections['PeakFDRer']['peak_column']
     col_CalDeltaMH = config._sections['PeakAssignator']['caldeltamh_column']
     closestpeak_column = config._sections['PeakAssignator']['closestpeak_column']
-    # fdr_filter = config._sections['PeakFDRer']['fdr_filter']
-    # target_filter = config._sections['PeakFDRer']['target_filter']
+    deltamass_column = config._sections['PeakAssignator']['deltamass_column']
     globalfdr = float(config._sections['PeakFDRer']['global_threshold'])
     localfdr = float(config._sections['PeakFDRer']['local_threshold'])
     peakfdr = float(config._sections['PeakFDRer']['peak_threshold'])
@@ -320,12 +326,11 @@ def main(args):
     #     sys.exit("Could not create output directory at %s" % args.output)
     
     # Read input file
-    logging.info('Read input file')
+    logging.info('Reading input file...')
     #df = pd.read_feather(args.infile)
     df = pd.read_csv(args.infile, sep="\t", float_precision='high', low_memory=False)
-    
     # Add groups
-    logging.info('Read experiments table')
+    logging.info('Reading experiments table...')
     groups = read_experiments(args.experiment_table)
     df = make_groups(df, groups)
     # Return info
@@ -407,8 +412,26 @@ def main(args):
     df_filter = df[(df.GlobalFDR<=globalfdr) & (df.LocalFDR<=localfdr) & (df.PeakFDR<=peakfdr)]
     logging.info("\tPSMs before filtering: " + str(len(df_filter)))
     # Split in folders by Experiment
-
-    logging.info("Write output file...")
+    if args.appfile:
+        logging.info("Making peak frequency table...")
+        apex_list = extractApexList(args.appfile)
+        apex_list = pd.DataFrame(apex_list, columns=['Peak'])
+        # Frequency
+        freqs = pd.DataFrame(df[deltamass_column].value_counts())
+        freqs.reset_index(inplace=True)
+        freqs.columns = ['Peak', 'Frequency']
+        freqs = freqs[freqs.Peak.isin(apex_list.Peak)]
+        apex_list = apex_list.merge(freqs, on='Peak', how='left').fillna(0)
+        # Filtered frequency
+        freqs = pd.DataFrame(df_filter[deltamass_column].value_counts())
+        freqs.reset_index(inplace=True)
+        freqs.columns = ['Peak', 'Filtered_Frequency']
+        freqs = freqs[freqs.Peak.isin(apex_list.Peak)]
+        apex_list = apex_list.merge(freqs, on='Peak', how='left').fillna(0)
+        outfile = args.infile[:-4] + '_peak_frequency.tsv'
+        apex_list.to_csv(outfile, index=False, sep='\t', encoding='utf-8')
+        
+    logging.info("Writing output files...")
     outfile = args.infile[:-4] + '_FDR.txt'
     outfile_filter = args.infile[:-4] + '_FDRfiltered.txt'
     df.to_csv(outfile, index=False, sep='\t', encoding='utf-8')
@@ -450,6 +473,7 @@ if __name__ == '__main__':
     defaultconfig = os.path.join(os.path.dirname(__file__), "config/SHIFTS.ini")
     
     parser.add_argument('-i',  '--infile', required=True, help='Input file with the peak assignation')
+    parser.add_argument('-a',  '--appfile', required=False, help='File with the apex list of Mass')
     parser.add_argument('-e',  '--experiment_table', required=True, help='Tab-separated file containing experiment names and file paths')
     parser.add_argument('-c',  '--config', default=defaultconfig, help='Path to custom config.ini file')
     #parser.add_argument('-o',  '--output', required=True, help='Output directory. Will be created if it does not exist')

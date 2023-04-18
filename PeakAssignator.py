@@ -245,8 +245,7 @@ def main(args):
     #df[assignseqcolumn] = df.apply(lambda x: x[seqdmcolumn].split('[')[0] + '[' + str(round(x[col_DM], decimal_places)) + ']' + x[seqdmcolumn].split(']')[1], axis = 1)
     # if flag == 1:
     #     df = df.drop(columns=["RECOMfiltered_type",recomseqdmcolumn])
-
-    logging.info("Write output file")
+    logging.info("Writing output files...")
     # https://towardsdatascience.com/the-best-format-to-save-pandas-data-414dca023e0d
     # begin:printHDF5
     # Note: Explote the Memory!!!
