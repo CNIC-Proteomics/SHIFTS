@@ -308,6 +308,9 @@ def main(args):
     closestpeak_column = config._sections['PeakAssignator']['closestpeak_column']
     # fdr_filter = config._sections['PeakFDRer']['fdr_filter']
     # target_filter = config._sections['PeakFDRer']['target_filter']
+    globalfdr = float(config._sections['PeakFDRer']['global_threshold'])
+    localfdr = float(config._sections['PeakFDRer']['local_threshold'])
+    peakfdr = float(config._sections['PeakFDRer']['peak_threshold'])
     
     # try:
     #     if not os.path.exists(args.output):
@@ -394,11 +397,22 @@ def main(args):
     
     # Clean filename
     df['Filename'] = df.apply(lambda x: x['Filename'].split('\\')[-1].split('/')[-1][:-4], axis=1)
+    
+    # Filter
+    logging.info(("Filtering at " + str(globalfdr) +
+                  " global FDR, " + str(localfdr) +
+                  " local FDR and " + str(peakfdr) +
+                  " peak FDR" + "..."))
+    logging.info("\tPSMs before filtering: " + str(len(df)))
+    df_filter = df[(df.GlobalFDR<=globalfdr) & (df.LocalFDR<=localfdr) & (df.PeakFDR<=peakfdr)]
+    logging.info("\tPSMs before filtering: " + str(len(df_filter)))
     # Split in folders by Experiment
 
     logging.info("Write output file...")
     outfile = args.infile[:-4] + '_FDR.txt'
+    outfile_filter = args.infile[:-4] + '_FDRfiltered.txt'
     df.to_csv(outfile, index=False, sep='\t', encoding='utf-8')
+    df_filter.to_csv(outfile_filter, index=False, sep='\t', encoding='utf-8')
     # dfs = df.groupby('Batch')
     # for group in list(dfs.groups.keys()):
     #     group_path = os.path.join(args.output, group)
