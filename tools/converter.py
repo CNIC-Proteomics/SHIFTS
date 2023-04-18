@@ -23,7 +23,7 @@ def main(args):
     Main function
     '''
     infile = Path(args.infile)
-    ext = infile.suffix
+    ext = infile.suffix.lower()
     # Convert
     if ext == '.feather':
         logging.info('Reading feather file...')
@@ -47,9 +47,6 @@ def main(args):
         logging.error('Input file format "' + ext +'" not recognized. Skipping...')
 
 if __name__ == '__main__':
-
-    # multiprocessing.freeze_support()
-
     # parse arguments
     parser = argparse.ArgumentParser(
         description='DMcalibrator',
