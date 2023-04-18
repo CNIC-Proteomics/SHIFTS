@@ -38,7 +38,8 @@ def concatInfiles(infile):
     '''
     
     # read input file
-    df = pd.read_csv(infile, sep="\t", float_precision='high', low_memory=False)
+    # df = pd.read_csv(infile, sep="\t", float_precision='high', low_memory=False)
+    df = pd.read_feather(infile)
     #df['Experiment'] = infile[0]
     df['Filename'] = infile
     # add folder name into column
@@ -251,15 +252,15 @@ def main(args):
     logging.info("Reading input file list...")
     if '*' in args.infile: # wildcard
         infiles = glob.glob(args.infile)
-        h_outfile = os.path.join(os.path.dirname(args.infile), 'PeakModeller_DMHistogram.txt')
-        t_outfile = os.path.join(os.path.dirname(args.infile), 'PeakModeller_DMTable.txt')
+        h_outfile = os.path.join(os.path.dirname(args.infile), 'PeakModeller_DMHistogram.tsv')
+        t_outfile = os.path.join(os.path.dirname(args.infile), 'PeakModeller_DMTable.feather')
     else:
         with open(args.infile) as f:
             infiles = f.readlines()
         infiles = [x.strip() for x in infiles] # remove whitespace
         infiles = list(filter(None, infiles)) # remove empty lines
-        h_outfile = args.infile[:-4] + '_DMHistogram.txt'
-        t_outfile = args.infile[:-4] + '_DMTable.txt'
+        h_outfile = args.infile[:-4] + '_DMHistogram.tsv'
+        t_outfile = args.infile[:-4] + '_DMTable.feather'
     for i in infiles:
         logging.info('\t' + str(os.path.basename(i)))
     
@@ -286,7 +287,8 @@ def main(args):
     bins_df.to_csv(h_outfile, index=False, sep='\t', encoding='utf-8')
     # write DMtable (input for PeakSelector)
     df = df.astype(str)
-    df.to_csv(t_outfile, index=False, sep='\t', encoding='utf-8')
+    # df.to_csv(t_outfile, index=False, sep='\t', encoding='utf-8')
+    df.to_feather(t_outfile)
     logging.info("Peak Modelling finished")
 
 if __name__ == '__main__':

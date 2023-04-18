@@ -49,7 +49,7 @@ def concatInfiles(peakpickingfile):
         
     # read input file
     # use high precision with the floats
-    df = pd.read_csv(peakpickingfile, sep="\t", float_precision='high')    
+    df = pd.read_csv(peakpickingfile, sep="\t", float_precision='high')
     # add folder name into column
     foldername = os.path.dirname(peakpickingfile)
     df['Experiment'] = foldername
@@ -202,8 +202,8 @@ def main(args):
     # df = pd.concat(df)
     # df.reset_index(drop=True, inplace=True)
     logging.info("Reading input file...")
-    df = pd.read_csv(args.infile, sep="\t", float_precision='high', low_memory=False)
- 
+    # df = pd.read_csv(args.infile, sep="\t", float_precision='high', low_memory=False)
+    df = pd.read_feather(args.infile)
     logging.info("Create a column with the bin")
     df['bin'] = df[col_CalDeltaMH].astype(str).str.extract(r'^([^\.]*)')
 
@@ -254,9 +254,9 @@ def main(args):
     # df.to_hdf('data.h5', key='df', mode='w')
     # end:printHDF5
     # df.to_csv('data.tsv', sep="\t", index=False)
-    outfile = args.infile[:-4] + '_PeakAssignation.txt'
-    #df.to_feather(outfile)
-    df.to_csv(outfile, index=False, sep='\t', encoding='utf-8')
+    outfile = args.infile[:-4] + '_PeakAssignation.feather'
+    # df.to_csv(outfile, index=False, sep='\t', encoding='utf-8')
+    df.to_feather(outfile)
     logging.info("Peak assignation finished.")
     
 

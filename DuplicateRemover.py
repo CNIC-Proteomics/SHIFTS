@@ -41,7 +41,7 @@ def main(args):
     df.drop_duplicates(subset=[scan], keep='first', inplace=True)
     df.reset_index(drop=True, inplace=True)
     
-    outfile = args.infile[:-8] + '_Unique.txt'
+    outfile = args.infile[:-8] + '_Unique.feather'
     logging.info('Writing output file ' + str(outfile))
     df.to_feather(outfile)
     

@@ -331,8 +331,9 @@ def main(args):
     df[calseqcolumn] = df.apply(lambda x: format_seq(x[seqdmcolumn], x['cal_dm_mh'], decimal_places), axis = 1)
     #Write to txt file
     logging.info("Writing output file...")
-    outfile = args.infile[:-4] + '_calibrated.txt'
-    df.to_csv(outfile, index=False, sep='\t', encoding='utf-8')
+    outfile = args.infile[:-4] + '_calibrated.feather'
+    # df.to_csv(outfile, index=False, sep='\t', encoding='utf-8')
+    df.to_feather(outfile)
     logging.info("Calibration finished")
 
     

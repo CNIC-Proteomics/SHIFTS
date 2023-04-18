@@ -30,7 +30,8 @@ def readInfile(infile):
     '''    
     Read input file to dataframe.
     '''
-    df = pd.read_csv(infile, sep="\t", float_precision='high', low_memory=False)
+    df = pd.read_feather(args.infile)
+    # df = pd.read_csv(infile, sep="\t", float_precision='high', low_memory=False)
     return df
 
 def labelTargetDecoy(df, proteincolumn, decoyprefix):
@@ -282,8 +283,9 @@ def main(args):
 
     # Write to file
     logging.info("Writing output file...")
-    outfile = args.infile[:-4] + '_RECOMfiltered.txt'
-    df.to_csv(outfile, index=False, sep='\t', encoding='utf-8')   
+    outfile = args.infile[:-4] + '_RECOMfiltered.feather'
+    # df.to_csv(outfile, index=False, sep='\t', encoding='utf-8')   
+    df.to_feather(outfile)
     logging.info("Recom filtering finished.")
     
 if __name__ == '__main__':

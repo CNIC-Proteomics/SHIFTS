@@ -328,7 +328,8 @@ def main(args):
     # Read input file
     logging.info('Reading input file...')
     #df = pd.read_feather(args.infile)
-    df = pd.read_csv(args.infile, sep="\t", float_precision='high', low_memory=False)
+    # df = pd.read_csv(args.infile, sep="\t", float_precision='high', low_memory=False)
+    df = pd.read_feather(args.infile)
     # Add groups
     logging.info('Reading experiments table...')
     groups = read_experiments(args.experiment_table)
@@ -432,8 +433,8 @@ def main(args):
         apex_list.to_csv(outfile, index=False, sep='\t', encoding='utf-8')
         
     logging.info("Writing output files...")
-    outfile = args.infile[:-4] + '_FDR.txt'
-    outfile_filter = args.infile[:-4] + '_FDRfiltered.txt'
+    outfile = args.infile[:-4] + '_FDR.tsv'
+    outfile_filter = args.infile[:-4] + '_FDRfiltered.tsv'
     df.to_csv(outfile, index=False, sep='\t', encoding='utf-8')
     df_filter.to_csv(outfile_filter, index=False, sep='\t', encoding='utf-8')
     # dfs = df.groupby('Batch')
