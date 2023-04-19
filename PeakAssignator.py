@@ -254,7 +254,7 @@ def main(args):
     # df.to_hdf('data.h5', key='df', mode='w')
     # end:printHDF5
     # df.to_csv('data.tsv', sep="\t", index=False)
-    outfile = args.infile[:-4] + '_PeakAssignation.feather'
+    outfile = args.infile[:-8] + '_PeakAssignation.feather'
     # df.to_csv(outfile, index=False, sep='\t', encoding='utf-8')
     df.to_feather(outfile)
     logging.info("Peak assignation finished.")
@@ -306,8 +306,8 @@ if __name__ == '__main__':
             config.write(newconfig)
 
     # logging debug level. By default, info level
-    log_file = outfile = args.infile[:-4] + 'PeakAssignation_log.txt'
-    log_file_debug = outfile = args.infile[:-4] + 'PeakAssignation_log_debug.txt'
+    log_file = outfile = args.infile[:-8] + 'PeakAssignation_log.txt'
+    log_file_debug = outfile = args.infile[:-8] + 'PeakAssignation_log_debug.txt'
     if args.verbose:
         logging.basicConfig(level=logging.DEBUG,
                             format='%(asctime)s - %(levelname)s - %(message)s',

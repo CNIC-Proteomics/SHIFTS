@@ -107,7 +107,7 @@ def get_spire_FDR(df, score_column, col_Peak, peak_outlier_value, xcorr_type): #
     peaks = df[df['Peak'] == 'PEAK'] # filter by Peak
     recom_peaks = peaks[peaks['XcorType'] == 'RECOM'] # TODO: XcorType needs to be created
     #recom-identified scans are not necessarily peaks, what to do?
-    grouped_recom_peaks = recom_peaks.groupby(['ClosestPeak']) # group by ClosestPeak
+    grouped_recom_peaks = recom_peaks.groupby('ClosestPeak') # group by ClosestPeak
     for group in grouped_recom_peaks:
         group_index = group[1].index.values
         df.loc[group_index] # repeat steps of local_FDR
@@ -138,7 +138,7 @@ def get_peak_FDR(df, score_column, col_Peak, closestpeak_column, peak_outlier_va
     df['Peak_Rank_D'] = -1
     # identify peaks
     peaks = df[df[col_Peak] == 'PEAK'] # filter by Peak
-    grouped_peaks = peaks.groupby([closestpeak_column]) # group by ClosestPeak
+    grouped_peaks = peaks.groupby(closestpeak_column) # group by ClosestPeak
     # df.get_group("group")
     #grouped_peaks.groups # group info
     # for group in grouped_peaks:
@@ -429,12 +429,12 @@ def main(args):
         freqs.columns = ['Peak', 'Filtered_Frequency']
         freqs = freqs[freqs.Peak.isin(apex_list.Peak)]
         apex_list = apex_list.merge(freqs, on='Peak', how='left').fillna(0)
-        outfile = args.infile[:-4] + '_peak_frequency.tsv'
+        outfile = args.infile[:-8] + '_peak_frequency.tsv'
         apex_list.to_csv(outfile, index=False, sep='\t', encoding='utf-8')
         
     logging.info("Writing output files...")
-    outfile = args.infile[:-4] + '_FDR.tsv'
-    outfile_filter = args.infile[:-4] + '_FDRfiltered.tsv'
+    outfile = args.infile[:-8] + '_FDR.tsv'
+    outfile_filter = args.infile[:-8] + '_FDRfiltered.tsv'
     df.to_csv(outfile, index=False, sep='\t', encoding='utf-8')
     df_filter.to_csv(outfile_filter, index=False, sep='\t', encoding='utf-8')
     # dfs = df.groupby('Batch')
@@ -526,10 +526,10 @@ if __name__ == '__main__':
     #     sys.exit("Could not create output directory at %s" % args.output)
 
     # logging debug level. By default, info level
-    log_file = args.infile[:-4] + '_FDR_log.txt'
+    log_file = args.infile[:-8] + '_FDR_log.txt'
     #log_file = os.path.join(args.output, args.infile.split('\\')[-1].split('/')[-1][:-4] + '_FDR_log.txt')
     #log_file_debug = os.path.join(args.output, args.infile.split('\\')[-1].split('/')[-1][:-4] + '_FDR_log_debug.txt')
-    log_file_debug = args.infile[:-4] + '_FDR_log_debug.txt'
+    log_file_debug = args.infile[:-8] + '_FDR_log_debug.txt'
     if args.verbose:
         logging.basicConfig(level=logging.DEBUG,
                             format='%(asctime)s - %(levelname)s - %(message)s',

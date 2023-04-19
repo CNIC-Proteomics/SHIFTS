@@ -67,7 +67,7 @@ def modelDecoys(df):
     df['Rank_A'] = df['Rank_A'].replace(to_replace=0, method='ffill')
     df['Rank_D'] = np.where(df['DiffType'] == 'D', df['Rank'], 0)
     df['Rank_D'] =  df['Rank_D'].replace(to_replace=0, method='ffill')
-    df.drop(['Rank'], axis = 1, inplace = True)
+    df.drop(columns=['Rank'], inplace = True)
     
     # Calculate A/D ratio ("FDR")
     df['A/D_Ratio'] = df['Rank_A']/df['Rank_D']
@@ -91,7 +91,7 @@ def modelDecoys(df):
     plt1.set_title("A/D Ratio vs DiffScore and theoretical curve")
     plt1.legend()
     #fig1.savefig(os.path.join(Path(args.output), Path(args.infile).stem + '_Ratio_vs_DiffScore.png'))
-    fig1.savefig(args.infile[:-4] + '_Ratio_vs_DiffScore.png')
+    fig1.savefig(args.infile[:-8] + '_Ratio_vs_DiffScore.png')
     
     fig2, plt2 = plt.subplots()
     plt2.plot(xs, df['Rank_D'].to_numpy(), '-', label="Rank D")
@@ -102,7 +102,7 @@ def modelDecoys(df):
     plt2.set_title("Rank D and A vs DiffScore (Decoys)")
     plt2.legend()
     #fig2.savefig(os.path.join(Path(args.output), Path(args.infile).stem + '_Rank_vs_DiffScore.png'))
-    fig2.savefig(args.infile[:-4] + '_Rank_vs_DiffScore_Decoys.png')
+    fig2.savefig(args.infile[:-8] + '_Rank_vs_DiffScore_Decoys.png')
     
     return popt
 
@@ -116,7 +116,7 @@ def checkTargets(df, popt):
     df['Rank_A'] = df['Rank_A'].replace(to_replace=0, method='ffill')
     df['Rank_D'] = np.where(df['DiffType'] == 'D', df['Rank'], 0)
     df['Rank_D'] =  df['Rank_D'].replace(to_replace=0, method='ffill')
-    df.drop(['Rank'], axis = 1, inplace = True)
+    df.drop(columns=['Rank'], inplace = True)
     
     # Estimate As
     df['Fitted_Curve'] = expFunction(df['DiffScoreAbs'], *popt)
@@ -132,7 +132,7 @@ def checkTargets(df, popt):
     plt1.set_title("Rank D and A vs DiffScore (Low-scoring targets)")
     plt1.legend()
     #fig1.savefig(os.path.join(Path(args.output), Path(args.infile).stem + '_Rank_vs_DiffScore_Targets_Below_Threshold.png'))
-    fig1.savefig(args.infile[:-4] + '_Rank_vs_DiffScore_Targets_Below_Threshold.png')
+    fig1.savefig(args.infile[:-8] + '_Rank_vs_DiffScore_Targets_Below_Threshold.png')
     
     return
 
@@ -146,7 +146,7 @@ def getDiffScoreCutOff(df, popt, t_increase):
     df['Rank_A'] = df['Rank_A'].replace(to_replace=0, method='ffill')
     df['Rank_D'] = np.where(df['DiffType'] == 'D', df['Rank'], 0)
     df['Rank_D'] =  df['Rank_D'].replace(to_replace=0, method='ffill')
-    df.drop(['Rank'], axis = 1, inplace = True)
+    df.drop(columns=['Rank'], inplace = True)
     
     # Estimate As
     df['Fitted_Curve'] = expFunction(df['DiffScoreAbs'], *popt)
@@ -162,7 +162,7 @@ def getDiffScoreCutOff(df, popt, t_increase):
     plt1.set_title("Rank D and A vs DiffScore (Targets)")
     plt1.legend()
     #fig1.savefig(os.path.join(Path(args.output), Path(args.infile).stem + '_Rank_vs_DiffScore_Targets_Above_Threshold.png'))
-    fig1.savefig(args.infile[:-4] + '_Rank_vs_DiffScore_Targets_Above_Threshold.png')
+    fig1.savefig(args.infile[:-8] + '_Rank_vs_DiffScore_Targets_Above_Threshold.png')
     
     # Calculate "FDR"
     df['A_Est/A_Obs'] = df['A_Est'] / df['Rank_A']
@@ -206,7 +206,7 @@ def filterRECOM(df, dsco, a_dm, r_dm, c_score, r_score, corr, decimal_places):
                                                                 decimal_places), axis = 1)
     if corr:
         df['RECOMfiltered_score_corr'] = df.apply(lambda x: x['Closest_Xcorr_corr'] if x['DiffScore']>=dsco else x['xcorr_corr'], axis = 1)
-    df = df.drop(['DiffScore', 'DiffScoreAbs'], 1)
+    df = df.drop(columns=['DiffScore', 'DiffScoreAbs'])
     recomized = df['RECOMfiltered_type'].value_counts()['RECOM']
     recomized_t = df[df['Label']=="Target"]['RECOMfiltered_type'].value_counts()['RECOM']
     recomized_d = df[df['Label']=="Decoy"]['RECOMfiltered_type'].value_counts()['RECOM']
@@ -237,6 +237,11 @@ def main(args):
     
     # Separate targets and decoys
     df = labelTargetDecoy(df, proteincolumn, decoyprefix) # df = labelTargetDecoy(df, 'protein', 'DECOY')
+    df[recom_score] = df[recom_score].astype(float)
+    df[recomdm] = df[recomdm].astype(float)
+    df[assigneddm] = df[assigneddm].astype(float)
+    df[comet_score] = df[comet_score].astype(float)
+    df['theo_mh'] = df['theo_mh'].astype(float)
     df['DiffScore'] = df[recom_score] - df[comet_score] # df['DiffScore'] = df['Closest_Xcorr'] - df['xcorr']
     df['DiffScoreAbs'] = abs(df['DiffScore'])
     df = labelAD(df)
@@ -283,7 +288,7 @@ def main(args):
 
     # Write to file
     logging.info("Writing output file...")
-    outfile = args.infile[:-4] + '_RECOMfiltered.feather'
+    outfile = args.infile[:-8] + '_RECOMfiltered.feather'
     # df.to_csv(outfile, index=False, sep='\t', encoding='utf-8')   
     df.to_feather(outfile)
     logging.info("Recom filtering finished.")
@@ -332,8 +337,8 @@ if __name__ == '__main__':
             config.write(newconfig)
 
     # logging debug level. By default, info level
-    log_file = outfile = args.infile[:-4] + '_RECOMfilterer_log.txt'
-    log_file_debug = outfile = args.infile[:-4] + '_RECOMfilterer_log_debug.txt'
+    log_file = outfile = args.infile[:-8] + '_RECOMfilterer_log.txt'
+    log_file_debug = outfile = args.infile[:-8] + '_RECOMfilterer_log_debug.txt'
     if args.verbose:
         logging.basicConfig(level=logging.DEBUG,
                             format='%(asctime)s - %(levelname)s - %(message)s',
