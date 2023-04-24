@@ -423,15 +423,27 @@ def main(args):
         freqs.columns = ['Peak', 'Frequency']
         freqs = freqs[freqs.Peak.isin(apex_list.Peak)]
         apex_list = apex_list.merge(freqs, on='Peak', how='left').fillna(0)
+        # Frequency (target)
+        freqs = pd.DataFrame(df[df.Label=='Target'][deltamass_column].value_counts())
+        freqs.reset_index(inplace=True)
+        freqs.columns = ['Peak', 'Frequency_Targets']
+        freqs = freqs[freqs.Peak.isin(apex_list.Peak)]
+        apex_list = apex_list.merge(freqs, on='Peak', how='left').fillna(0)
         # Filtered frequency
         freqs = pd.DataFrame(df_filter[deltamass_column].value_counts())
         freqs.reset_index(inplace=True)
         freqs.columns = ['Peak', 'Filtered_Frequency']
         freqs = freqs[freqs.Peak.isin(apex_list.Peak)]
         apex_list = apex_list.merge(freqs, on='Peak', how='left').fillna(0)
+        # Filtered frequency (target)
+        freqs = pd.DataFrame(df_filter[df_filter.Label=='Target'][deltamass_column].value_counts())
+        freqs.reset_index(inplace=True)
+        freqs.columns = ['Peak', 'Filtered_Frequency_Targets']
+        freqs = freqs[freqs.Peak.isin(apex_list.Peak)]
+        apex_list = apex_list.merge(freqs, on='Peak', how='left').fillna(0)
         outfile = args.infile[:-8] + '_peak_frequency.tsv'
         apex_list.to_csv(outfile, index=False, sep='\t', encoding='utf-8')
-        
+    df_filter = df_filter[df_filter.Label=='Target']
     logging.info("Writing output files...")
     outfile = args.infile[:-8] + '_FDR.tsv'
     outfile_filter = args.infile[:-8] + '_FDRfiltered.tsv'
