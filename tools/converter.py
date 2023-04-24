@@ -29,20 +29,29 @@ def main(args):
         logging.info('Reading feather file...')
         df = pd.read_feather(args.infile)
         logging.info('Writing tab-separated text file...')
-        infile.rename(infile.with_suffix('.tsv'))
-        df.to_csv(infile, index=False, sep='\t', encoding='utf-8')
+        # infile.rename(infile.with_suffix('.tsv'))
+        outfile = args.infile.split('.')
+        outfile[-1] = 'tsv'
+        outfile = '.'.join(outfile)
+        df.to_csv(outfile, index=False, sep='\t', encoding='utf-8')
     elif ext in ['.txt', '.tsv']:
         logging.info('Reading tab-separated text file...')
-        df = pd.read_csv(infile, sep="\t")
+        df = pd.read_csv(args.infile, sep="\t")
         logging.info('Writing feather file...')
-        infile.rename(infile.with_suffix('.feather'))
-        df.to_feather(infile)
+        # infile.rename(infile.with_suffix('.feather'))
+        outfile = args.infile.split('.')
+        outfile[-1] = 'feather'
+        outfile = '.'.join(outfile)
+        df.to_feather(outfile)
     elif ext in ['.csv']:
         logging.info('Reading comma-separated text file...')
-        df = pd.read_csv(infile, sep=",")
+        df = pd.read_csv(args.infile, sep=",")
         logging.info('Writing feather file...')
-        infile.rename(infile.with_suffix('.feather'))
-        df.to_feather(infile)
+        outfile = args.infile.split('.')
+        outfile[-1] = 'feather'
+        outfile = '.'.join(outfile)
+        # infile.rename(infile.with_suffix('.feather'))
+        df.to_feather(outfile)
     else:
         logging.error('Input file format "' + ext +'" not recognized. Skipping...')
 
@@ -69,4 +78,8 @@ if __name__ == '__main__':
             # start main function
             logging.info('start script')
             main(args)
+        logging.info('end script')
+    else:
+        logging.info('start script')
+        main(args)
         logging.info('end script')
