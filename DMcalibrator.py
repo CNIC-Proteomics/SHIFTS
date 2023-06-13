@@ -331,7 +331,7 @@ def main(args):
     df[calseqcolumn] = df.apply(lambda x: format_seq(x[seqdmcolumn], x['cal_dm_mh'], decimal_places), axis = 1)
     #Write to txt file
     logging.info("Writing output file...")
-    outfile = args.infile[:-4] + '_calibrated.feather'
+    outfile = args.infile[:-8] + '_calibrated.feather'
     # df.to_csv(outfile, index=False, sep='\t', encoding='utf-8')
     df.to_feather(outfile)
     logging.info("Calibration finished")
@@ -404,8 +404,8 @@ if __name__ == '__main__':
         for f in flist:
             args.infile = f
             # logging debug level. By default, info level
-            log_file = outfile = args.infile[:-4] + '_log.txt'
-            log_file_debug = outfile = args.infile[:-4] + '_log_debug.txt'
+            log_file = outfile = args.infile[:-8] + '_log.txt'
+            log_file_debug = outfile = args.infile[:-8] + '_log_debug.txt'
             if args.verbose:
                 logging.basicConfig(level=logging.DEBUG,
                                     format='%(asctime)s - %(levelname)s - %(message)s',
