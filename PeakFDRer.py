@@ -411,7 +411,7 @@ def main(args):
                   " peak FDR" + "..."))
     logging.info("\tPSMs before filtering: " + str(len(df)))
     df_filter = df[(df.GlobalFDR<=globalfdr) & (df.LocalFDR<=localfdr) & (df.PeakFDR<=peakfdr)]
-    logging.info("\tPSMs before filtering: " + str(len(df_filter)))
+    logging.info("\tPSMs after filtering: " + str(len(df_filter)))
     # Split in folders by Experiment
     if args.appfile:
         logging.info("Making peak frequency table...")
