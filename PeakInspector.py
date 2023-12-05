@@ -296,7 +296,7 @@ def plot_graphs():
     # Build the first plot
     p1 = figure(title="Plot 1",\
          x_axis_label=plotObject.plots[plotObject.plotSections[0]]['x_axis'],\
-         width=1300, height=400, tools = "pan,xzoom_in,xzoom_out,ywheel_zoom,box_zoom,reset,save,undo,hover", tooltips=[('Name', '$name')])
+         width=1300, height=400, tools = "pan,xzoom_in,xzoom_out,ywheel_zoom,box_zoom,reset,save,undo,hover", tooltips=[('Name', '$name'), ("DM", "$x"), ("Y", "$y")])
     
     p1 = addPlotsToFigure(p1, plotObject.plotSections[0])
 
