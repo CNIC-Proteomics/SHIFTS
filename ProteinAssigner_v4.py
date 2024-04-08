@@ -114,7 +114,7 @@ def fastaReader(paramsDict):
         
         seq_list.append(seq_i)
         
-        if paramsDict["fasta_params"]['iso_leucine'] or paramsDict["fasta_params"]['iso_leucine'] == '':
+        if paramsDict["fasta_params"]['iso_leucine'] and paramsDict["fasta_params"]['iso_leucine'] != '':
             seq_list = [replaceLeu(i, paramsDict["fasta_params"]['iso_leucine']) for i in seq_list]
     
     acc_desc_seq = list(zip(desc_list, acc_list, seq_list, isTarget_list))
