@@ -94,7 +94,7 @@ def fastaReader(paramsDict):
     seq_list = []
     isTarget_list = []
 
-    with open(paramsDict["fasta_params"]['fasta'], 'r') as f:
+    with open(paramsDict['fasta_params']['fasta'], 'r') as f:
 
         seq_i = ""
         for line in f:
@@ -215,6 +215,79 @@ def add_flatten_lists(the_lists):
     """
     return result
     
+   
+def filterPreviousRegex(ac, dc, regex, sep_char):
+    ac_out = ac
+    dc_out = dc
+    
+    try:
+        # the filter is only applied in cases where there is more than one protein
+        if len(ac) > 1:
+        
+            # apply the list of regex in the list of protein descriptions
+            regex_matches = [[bool(ri.search(qdi)) for ri in regex] for qdi in dc]
+        
+            # count the number of true conditions using regex
+            count_matches = [np.sum(np.cumsum(i) == np.arange(1,len(i)+1)) for i in regex_matches]
+            
+            # obtain the index list of the maximum number of matches using regex
+            max_matches = np.argwhere( count_matches==np.amax(count_matches) ).flatten().tolist()
+            
+            # the filter is only applied where there are matches using regex; otherwise, we do nothing
+            if len(max_matches) > 0:
+                ac_out = [ ac[i] for i in max_matches ]
+                dc_out = [ dc[i] for i in max_matches ]
+                
+    except:
+        logging.warning(('Problem applying the filter for: {} {}').format(f"{sep_char}".join(ac_out),f"{sep_char}".join(dc_out)))
+        ac_out = ac
+        dc_out = dc
+
+    # create outputs joining with the separator char
+    ac_out = f"{sep_char}".join(ac_out)
+    dc_out = f"{sep_char}".join(dc_out)
+        
+    return [ac_out, dc_out]
+
+
+def filterPreviousRegex2(ac_dc, regex, sep_char):
+    ac = ac_dc[0]
+    dc = ac_dc[1]
+    ac_out = ac
+    dc_out = dc
+    
+    try:
+        # the filter is only applied in cases where there is more than one protein
+        if len(ac) > 1:
+        
+            # apply the list of regex in the list of protein descriptions
+            regex_matches = [[bool(ri.search(qdi)) for ri in regex] for qdi in dc]
+        
+            # count the number of true conditions using regex
+            count_matches = [np.sum(np.cumsum(i) == np.arange(1,len(i)+1)) for i in regex_matches]
+            
+            # obtain the index list of the maximum number of matches using regex
+            max_matches = np.argwhere( count_matches==np.amax(count_matches) ).flatten().tolist()
+            
+            # the filter is only applied where there are matches using regex; otherwise, we do nothing
+            if len(max_matches) > 0:
+                ac_out = [ ac[i] for i in max_matches ]
+                dc_out = [ dc[i] for i in max_matches ]
+
+    except:
+    # except Exception as e:
+        # logging.warning(('Problem applying the filter for: {} {}: {}\n').format(f"{sep_char}".join(ac_out),f"{sep_char}".join(dc_out), e))
+        ac_out = ac
+        dc_out = dc
+            
+    # create df with the outputs: column for accessions and column for the desccriptions
+    ac_out = f"{sep_char}".join(ac_out)
+    dc_out = f"{sep_char}".join(dc_out)
+    out = pd.DataFrame([[ac_out, dc_out]])
+            
+    return out
+    
+
 def _getMPPindex(l, df, q2len, paramsDict):
     
     pp = paramsDict['seq_column']
@@ -454,6 +527,12 @@ def main(paramsDict):
 
     
     #
+    # Get column names from user params
+    #
+    d_colName, acc_colName = paramsDict['fasta_params']['candidate_d'], paramsDict['fasta_params']['candidate_a']
+
+
+    #
     # Create column with candidate proteins
     #
     q2len = {} # used when calculating MPP in fasta mode
@@ -471,7 +550,7 @@ def main(paramsDict):
         
 
         # Identify candidate proteins
-        logging.info(f'Identifying candidate proteins...')
+        logging.info('Identifying candidate proteins...')
 
         # Extract plain peptides (pp) from psm table
         pp_psm = df[paramsDict['seq_column']].to_list() # list of pp of each psm
@@ -496,15 +575,10 @@ def main(paramsDict):
         
             logging.info(f'Remaining plain peptides were searched in decoy proteins {str(round(time()-t, 2))}s')
 
-
         # Add to df the columns with accession and description of candidate proteins (!!! Do not overwrite columns)
         pp_indexes_acc, pp_indexes_d = zip(*[[(i[1], (j[0],)), (i[1], (j[1],))] for i,j in zip(pp_indexes, pp_acc_d)])        
         acc_column = list(zip(*sorted([j for i in pp_indexes_acc for j in itertools.product(*i)])))[1]
         d_column = list(zip(*sorted([j for i in pp_indexes_d for j in itertools.product(*i)])))[1]
-
-        # GET COLUMN NAMES FROM USER PARAMS!!!
-        # d_colName, acc_colName = suffixScript+'_description', suffixScript+'_accession'
-        d_colName, acc_colName = paramsDict['fasta_params']['candidate_d'], paramsDict['fasta_params']['candidate_a']
 
         # add these new columns
         df[acc_colName] = acc_column
@@ -525,19 +599,60 @@ def main(paramsDict):
         #paramsDict['_replace_delim'] = True # Protein delimiter is " // ". We want to change it to ; in the end (but only in fasta mode)
 
 
-    #
-    # Calculate most probable protein
-    #
-    logging.info(f'Calculating most probable protein...')
+    # check if candidate columns exist
     if paramsDict["column_params"]['candidate_a'] not in df.columns:
     # if np.any([i not in df.columns for i in paramsDict["column_params"]['prot_column']]):
         logging.error(f'{paramsDict["column_params"]["candidate_a"]} column not found and MPP cannot be calculated')
         sys.exit(-4)
 
 
+    #
+    # Apply a filter for protein redundancies before everything else
+    #
+    if (paramsDict['regex_previous'] != '') and (paramsDict["column_params"]['candidate_d'] in df.columns):
+        t = time()
+        logging.info('Applying a filter for protein redundancies before everything else...')
+        ac = paramsDict['column_params']['candidate_a']
+        dc = paramsDict['column_params']['candidate_d']
+        sc = paramsDict['column_params']['sep_char']
+    
+        ac_split = df[ac].str.split(sc).tolist()
+        dc_split = df[dc].str.split(sc).tolist()
+        
+        ac_dc_split = list(zip(ac_split, dc_split))  
+        with concurrent.futures.ProcessPoolExecutor(max_workers=int(paramsDict['n_cores'])) as executor:
+            ac_dc_filtered = executor.map(
+                filterPreviousRegex2,
+                ac_dc_split,
+                repeat(paramsDict['regex_previous']),
+                repeat(paramsDict["column_params"]['sep_char'])
+            )
+        ac_dc_filtered = pd.concat(ac_dc_filtered)
+        # print(yyy)
+        # for debugging: Spyder
+        # ac_dc_filtered = filterPreviousRegex2(ac_dc_split[0], paramsDict['regex_previous'], paramsDict["column_params"]['sep_char'])
+
+
+        # acc_column2,d_column2 = zip(*[filterPreviousRegex(ac, dc, paramsDict['regex_previous'], paramsDict["column_params"]['sep_char']) for ac, dc in zip(ac_split, dc_split)])
+        # acc_column2 = list(acc_column2)
+        # d_column2 = list(d_column2)
+
+        # add these new columns
+        df[acc_colName] = ac_dc_filtered[0].tolist()
+        df[d_colName] = ac_dc_filtered[1].tolist()
+        
+        logging.info(f'...the filter completed in {str(round(time()-t, 2))}s')    
+ 
+        
+
+    #
+    # Calculate most probable protein
+    #
+    logging.info('Calculating most probable protein...')
     t = time()
     df = getMostProbableProtein(df, paramsDict, q2len)
     logging.info(f'Most probable protein was calculated in {str(round(time()-t, 2))}s')
+
 
     #
     # Write ID table
@@ -588,6 +703,7 @@ Usage:
     parser.add_argument('-s',  '--plainseq', type=str, help='Name of the column containing peptide sequence')
     parser.add_argument('-md',  '--mdesc', type=str, help='Name of the output column with most probable descriptions')
     parser.add_argument('-qm',  '--macc', type=str, help='Name of the output column with most probable accessions')
+    parser.add_argument('-rp',  '--regex_previous', type=str, help='Regex filter for protein redundancies before everything else (/regex1/regex2/regex3/.../')
     parser.add_argument('-rx',  '--regex', type=str, help='Regex applied in case of ties (/regex1/regex2/regex3/.../')
     parser.add_argument('-lx',  '--len', type=int, help='Consider sequence length in prioritization')
     parser.add_argument('-m',  '--mode', type=str, help='Select mode of execution: fasta/column')
@@ -627,22 +743,24 @@ Usage:
             paramsDict['outfile'] = re.split('\s*,\s*', re.sub('\s*', '', pa_params['outfile']).replace('"','')) if 'outfile' in pa_params else []
             paramsDict['seq_column'] = pa_params['seq_column'] if 'seq_column' in pa_params else ''
             # execution mode
-            paramsDict['mode']                         = pa_params['mode'] if 'mode' in pa_params else ''
+            paramsDict['mode']                          = pa_params['mode'] if 'mode' in pa_params else ''
             # params for fasta mode
             paramsDict['fasta_params'] = {}
-            paramsDict['fasta_params']['fasta']        = pa_params['fasta'] if 'fasta' in pa_params else ''
-            paramsDict['fasta_params']['decoy_prefix'] = pa_params['decoy_prefix'] if 'decoy_prefix' in pa_params else ''
-            paramsDict['fasta_params']['iso_leucine']  = pa_params['iso_leucine'] if 'iso_leucine' in pa_params else ''
+            paramsDict['fasta_params']['fasta']         = pa_params['fasta'] if 'fasta' in pa_params else ''
+            paramsDict['fasta_params']['decoy_prefix']  = pa_params['decoy_prefix'] if 'decoy_prefix' in pa_params else ''
+            paramsDict['fasta_params']['iso_leucine']   = pa_params['iso_leucine'] if 'iso_leucine' in pa_params else ''
             # params for column mode
             paramsDict['column_params'] = {}
             paramsDict['column_params']['sep_char']     = pa_params['sep_char'] if 'sep_char' in pa_params else ''
             # output names
-            paramsDict['mpp_d']                        = pa_params['mpp_d'] if 'mpp_d' in pa_params else ''
-            paramsDict['mpp_a']                        = pa_params['mpp_a'] if 'mpp_a' in pa_params else ''
-            paramsDict['fasta_params']['candidate_a']  = pa_params['candidate_a'] if 'candidate_a' in pa_params else ''
-            paramsDict['fasta_params']['candidate_d']  = pa_params['candidate_d'] if 'candidate_d' in pa_params else ''
+            paramsDict['mpp_d']                         = pa_params['mpp_d'] if 'mpp_d' in pa_params else ''
+            paramsDict['mpp_a']                         = pa_params['mpp_a'] if 'mpp_a' in pa_params else ''
+            paramsDict['fasta_params']['candidate_a']   = pa_params['candidate_a'] if 'candidate_a' in pa_params else ''
+            paramsDict['fasta_params']['candidate_d']   = pa_params['candidate_d'] if 'candidate_d' in pa_params else ''
             paramsDict['column_params']['candidate_a']  = pa_params['candidate_a'] if 'candidate_a' in pa_params else ''
             paramsDict['column_params']['candidate_d']  = pa_params['candidate_d'] if 'candidate_d' in pa_params else ''
+            # (regex) filter for protein redundancies before everything else
+            paramsDict['regex_previous']                = pa_params['regex_previous'] if 'regex_previous' in pa_params else ''
             # params in the case of tie
             paramsDict['regex']                         = pa_params['regex'] if 'regex' in pa_params else ''
             paramsDict['len_seq']                       = pa_params['len_seq'] if 'len_seq' in pa_params else ''
@@ -652,7 +770,6 @@ Usage:
             sys.exit(-1000)
 
     # When a command line is added, the parameters in the config file are overwritten.
-    args.mode = "fasta" if args.fasta else "column" 
 
     # inputs/outputs
     if args.infile:    paramsDict['infile']  = args.infile
@@ -673,13 +790,18 @@ Usage:
     if args.cdesc:     paramsDict['fasta_params']['candidate_d']  = args.cdesc
     if args.pcacc:     paramsDict['column_params']['candidate_a']  = args.pcacc
     if args.pcdesc:     paramsDict['column_params']['candidate_d']  = args.pcdesc
+    # (regex) filter for protein redundancies before everything else
+    if args.regex_previous:     paramsDict['regex_previous']  = args.regex
     # params in the case of tie
     if args.regex:     paramsDict['regex']  = args.regex
     if args.len:      paramsDict['len_seq']  = args.len
     # n_cores
     if args.n_workers:      paramsDict['n_cores']  = args.n_workers
     
+    if paramsDict['regex_previous'] != '': paramsDict['regex_previous'] = [re.compile(i, re.IGNORECASE) for i in re.split(r'(?<!\\)/', paramsDict['regex_previous'].strip('/ '))]
     paramsDict['regex'] = [re.compile(i, re.IGNORECASE) for i in re.split(r'(?<!\\)/', paramsDict['regex'].strip('/ '))]
+    
+    paramsDict['fasta_params']['fasta'] = paramsDict['fasta_params']['fasta'].strip('"')
     
     # logging debug level. By default, info level
     script_name = os.path.splitext(script_name)[0].upper()
