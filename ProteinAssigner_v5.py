@@ -526,10 +526,10 @@ def main(paramsDict):
         sys.exit(-3)
 
     
-    #
-    # Get column names from user params
-    #
-    d_colName, acc_colName = paramsDict['fasta_params']['candidate_d'], paramsDict['fasta_params']['candidate_a']
+    # #
+    # # Get column names from user params
+    # #
+    # d_colName, acc_colName = paramsDict['fasta_params']['candidate_d'], paramsDict['fasta_params']['candidate_a']
 
 
     #
@@ -580,6 +580,9 @@ def main(paramsDict):
         acc_column = list(zip(*sorted([j for i in pp_indexes_acc for j in itertools.product(*i)])))[1]
         d_column = list(zip(*sorted([j for i in pp_indexes_d for j in itertools.product(*i)])))[1]
 
+        # Get column names from user params
+        d_colName, acc_colName = paramsDict['fasta_params']['candidate_d'], paramsDict['fasta_params']['candidate_a']
+
         # add these new columns
         df[acc_colName] = acc_column
         df[d_colName] = d_column
@@ -597,13 +600,16 @@ def main(paramsDict):
         
         #paramsDict['_additional_column'] = [d_colName] # another from which extract information of most probable protein
         #paramsDict['_replace_delim'] = True # Protein delimiter is " // ". We want to change it to ; in the end (but only in fasta mode)
-
-
-    # check if candidate columns exist
-    if paramsDict["column_params"]['candidate_a'] not in df.columns:
-    # if np.any([i not in df.columns for i in paramsDict["column_params"]['prot_column']]):
-        logging.error(f'{paramsDict["column_params"]["candidate_a"]} column not found and MPP cannot be calculated')
-        sys.exit(-4)
+        
+    else:
+        # Get column names from user params
+        d_colName, acc_colName = paramsDict['column_params']['candidate_d'], paramsDict['column_params']['candidate_a']
+        
+        # check if candidate columns exist
+        if paramsDict['column_params']['candidate_a'] not in df.columns:
+        # if np.any([i not in df.columns for i in paramsDict["column_params"]['prot_column']]):
+            logging.error(f'{paramsDict["column_params"]["candidate_a"]} column not found and MPP cannot be calculated')
+            sys.exit(-4)
 
 
     #
