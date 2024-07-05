@@ -21,6 +21,7 @@ from pathlib import Path
 import pyarrow
 import sys
 
+
 def main(ifile, ofile):
     '''
     Main function
@@ -47,9 +48,7 @@ def main(ifile, ofile):
     # df.to_csv(outfile, index=False, sep='\t', encoding='utf-8')
     df = df.reset_index(drop=True)
     df.to_feather(outfile)
-    
-    logging.info('Done')
-    
+        
 
 if __name__ == '__main__':
 

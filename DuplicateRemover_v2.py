@@ -42,9 +42,7 @@ def main(args):
     outfile = args.infile[:-8] + '_Unique.feather'
     logging.info('Writing output file ' + str(outfile))
     df.to_feather(outfile)
-    
-    logging.info('Done')
-    
+        
 
 if __name__ == '__main__':
 
