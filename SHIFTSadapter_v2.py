@@ -25,23 +25,27 @@ def main(ifile, ofile):
     '''
     Main function
     '''
-    # Main variables
-    logging.info('Reading input file ' + str(ifile))
+    # obtain the first line
+    logging.info('Giving the input file ' + str(ifile))
     with open(ifile) as f:
         first_line = f.readline().strip().split('\t')
-    df = pd.read_csv(ifile, sep='\t', skiprows=1, float_precision='high', low_memory=False, index_col=False)
     
-    logging.info('Search Engine: ' + first_line[0])
-    logging.info('Raw: ' + first_line[1])
-    logging.info('Date: ' + first_line[2])
-    logging.info('Database: ' + first_line[3])
+    # read the data depending on the type of search engine
+    if 'CometVersion' in first_line[0]:
+        logging.info('Reading the "comet" data file')
+        df = pd.read_csv(ifile, sep='\t', skiprows=1, float_precision='high', low_memory=False, index_col=False)
+    else:
+        logging.info('Reading the "msfragger" data file')
+        df = pd.read_csv(ifile, sep='\t', float_precision='high', low_memory=False, index_col=False)
     
+    # add the file name without extension into 'Raw' column
     df["Raw"] = '.'.join(os.path.basename(Path(ifile)).split(".")[:-1])
     
+    # write file
     outfile = ofile[:-4] + '_SHIFTS.feather'
     logging.info('Writing output file ' + str(outfile))
     # df.to_csv(outfile, index=False, sep='\t', encoding='utf-8')
-    df = df.reset_index()
+    df = df.reset_index(drop=True)
     df.to_feather(outfile)
     
     logging.info('Done')
@@ -54,7 +58,7 @@ if __name__ == '__main__':
         description='SHIFTSadapter v2',
         epilog='''
         Example:
-            python SHIFTSadapter.py
+            python SHIFTSadapter_v2.py
 
         ''')
     
