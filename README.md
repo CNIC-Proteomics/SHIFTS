@@ -16,18 +16,16 @@ Before you begin, ensure you have met the following requirements:
 To set up the Python environment and install the required packages, follow these steps:
 
 1. Create a virtual environment
-```
-sh
+```sh
 python -m venv env
 ```
 2. Activate the virtual environment and install the dependencies
-```
-sh
+```sh
 source env/bin/activate && pip install -r python_requirements.txt
 ```
 
 # Usage
 
-For the usage of several programs you can consult the (USAGE.md)[USAGE.md] file.
+For the usage of several programs you can consult the [USAGE.md](USAGE.md) file.
 
 

@@ -4,21 +4,28 @@ Every SHIFTS module uses configuration files (INI), but some of the parameters i
 
 1.	SHIFTSadapter
 This module adapts a Comet-PTM or Recom file so that it can be analyzed with SHIFTS. If the input file is of a different type that already does not have any extra lines before the column headers, this step can be skipped. Every other module following this one assumes that the input file’s first line contains the column names.
+
   •	Input:
+
     o	A tab-separated file from Comet-PTM or Recom output (with header).
+
 •	Output:
+
   o	A tab-separated file (without header).
   o	A log file containing the header information.
 
 2.	DuplicateRemover
 This module will remove scan duplicates, keeping only the scan candidate that meets the following criteria: highest rank, highest score (if there are several with the same rank), highest sp_score (if there are several with the same score).
+
   •	Input:
+
     o	A file from SHIFTSadapter output.
     o	Command-line parameters:
       -s (--scan) = ScanID column name (case sensitive, column must contain an unique ID for each scan)
       -n (--num) = Rank column name (case sensitive)
       -x (--score) = Score column name (case sensitive) 
       -p (--spscore) = SpScore column name (case sensitive)
+      
   •	Output:
     o	The same file, with duplicates removed.
     o	A log file.
@@ -77,6 +84,7 @@ Taking the x (bin midpoint) and y (first derivative) values for those points it 
   •	Output:
     o	A text file containing the apex list.
     o	A log file containing the number of apexes that were calculated.
+
 6.	PeakAssignator
 This module will assign every PSM to the closest deltamass peak found in the provided apex list and identify it as either belonging to that peak, or as an orphan. To do so, it will calculate the absolute distance between the deltamass value and the assigned peak and then the error in ppm:
 distance = abs(assigned_peak - delta_MH)
@@ -101,6 +109,7 @@ If that value is larger than the user-defined threshold, it will be considered a
   •	Output:
     o	A DMtable with additional columns for the closest peak, assignation as peak or orphan, assigned deltamass, ppm error, sequence with assigned deltamass.
     o	A log file.
+
 7.	PeakFDRer
 This module will calculate global, local, and peak FDR values for a DMtable subdivided by experiment. Global FDR is calculated per experiment, local and peak FDR is calculated for the whole dataset. Experiment groups are created using the information in the “Filename” column (created by the DMcalibrator module) of the DMTable, and a user-provided list that assigns each filename to a group. For the global FDR, rather than taking an entire experiment, this module will separate it in two deltamass regions (defined by the parameter dm_region_limit, default value -56) and calculate a global FDR for each region.
   •	Input:
