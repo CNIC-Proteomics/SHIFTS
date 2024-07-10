@@ -11,8 +11,6 @@ Before you begin, ensure you have met the following requirements:
 
 - You have Python installed on your machine. You can download it from python.org.
 
-## Installation
-
 ### Setting Up the Python Environment
 
 To set up the Python environment and install the required packages, follow these steps:
