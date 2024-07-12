@@ -43,4 +43,4 @@ The latter file must cointain the following params:
 ### How to execute
 
 <code>
->>> python PeakSelector_v2.0.0.py -i{input file (DMHistogram)} -c{config file}
+>>> python PeakSelector_v2.py -i{input file (DMHistogram)} -c{config file}
