@@ -21,6 +21,7 @@ import re
 import pandas as pd
 import numpy as np
 import plotly.graph_objs as go
+import traceback
 
 
 pd.options.mode.chained_assignment = None  # default='warn'
@@ -92,9 +93,12 @@ def extract_slopes(df_hist,x2,m,intercept,dm0,dm1):
 
         return df_result
         
-    except ValueError:
+    except ValueError as e:
 
         logging.error('Check dm values on the config. Your spectra looks smaller')
+        # get the traceback information
+        tb = traceback.extract_tb(e.__traceback__)    
+        for frame in tb: logging.error(f"File: {frame.filename}, Line: {frame.lineno}, Function: {frame.name}, Error: {e}")
         sys.exit()
 
 
