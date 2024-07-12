@@ -9,3 +9,6 @@ pyyaml
 # packages for PeakInspector??
 matplotlib==3.8.3
 # bokeh==3.3.4
+
+# PeakSelector
+plotly==5.22.0
