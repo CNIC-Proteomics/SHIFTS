@@ -128,16 +128,21 @@ def get_spire_FDR(df, score_column, col_Peak, peak_outlier_value, xcorr_type): #
     df.drop(['Rank'], axis = 1, inplace = True)
     return df
 
-def get_peak_FDR(df, score_column, col_Peak, closestpeak_column, peak_outlier_value):
+def get_peak_FDR(df, score_column, col_Peak, closestpeak_column):
     '''
     Calculate peak FDR for each peak in one bin (1 Da)
     '''
-    df['PeakFDR'] = peak_outlier_value
-    df['Rank'] = -1
-    df['Peak_Rank_T'] = -1
-    df['Peak_Rank_D'] = -1
+    dfo = df[df.PeakAssignation!='PEAK'].copy()
+    dfo['PeakFDR'] = ''
+    dfo['Rank'] = ''
+    dfo['Peak_Rank_T'] = ''
+    dfo['Peak_Rank_D'] = ''
+    dfp = df[df.PeakAssignation=='PEAK'].copy()
+    dfp['Rank'] = -1
+    dfp['Peak_Rank_T'] = -1
+    dfp['Peak_Rank_D'] = -1
     # identify peaks
-    peaks = df[df[col_Peak] == 'PEAK'] # filter by Peak
+    peaks = dfp[dfp[col_Peak] == 'PEAK'] # filter by Peak
     grouped_peaks = peaks.groupby(closestpeak_column) # group by ClosestPeak
     # df.get_group("group")
     #grouped_peaks.groups # group info
@@ -179,13 +184,13 @@ def get_peak_FDR(df, score_column, col_Peak, closestpeak_column, peak_outlier_va
         # join with df
         common_index = df.index.intersection(final_peaks_df.index)
         common_columns = df.columns.intersection(final_peaks_df.columns)
-        df.loc[common_index, common_columns] = final_peaks_df.loc[common_index, common_columns]
+        dfp.loc[common_index, common_columns] = final_peaks_df.loc[common_index, common_columns]
     ###
-    
+    df = pd.concat([dfp, dfo], axis=0)
     df.drop(['Rank'], axis = 1, inplace = True)
     return df
 
-def get_local_FDR(df, score_column, peak_outlier_value):
+def get_local_FDR(df, score_column):
     '''
     Calculate local FDR for one bin (1 Da)
     '''
@@ -208,12 +213,19 @@ def get_local_FDR(df, score_column, peak_outlier_value):
     df['LocalFDR'] = df['Local_Rank_D']/df['Local_Rank_T']
     return df
 
-def get_global_FDR(df, score_column, peak_label, col_Peak, closestpeak_column, dm_column, dm_region_limit, peak_outlier_value, n_workers):
+def get_global_FDR(df, score_column, peak_label, col_Peak, closestpeak_column,
+                   dm_column, dm_region_limit, globalFDR_orphans, n_workers):
     '''
     Calculate global FDR
     '''
+    if globalFDR_orphans: # Calculate and apply global FDR to orphan PSMs only
+        dfo = df[df.PeakAssignation!='PEAK'].copy()
+        dfp = df[df.PeakAssignation=='PEAK'].copy()
+        dfp['Global_Rank_T'] = dfp['Global_Rank_D'] = dfp['GlobalFDR'] = ''
+    else: # Calculate and apply global FDR to all PSMs
+        dfo = df
     # get the EXPERIMENT value from the input tuple df=(experiment,df)
-    (experiment_value, df) = df[0], df[1]
+    (experiment_value, dfo) = df[0], df[1]
     print("\t\t\t\t\tCalculating Global FDR for: " + experiment_value)
     # sort by score
     # if recom_data == 0: # by Comet Xcorr
@@ -224,8 +236,8 @@ def get_global_FDR(df, score_column, peak_label, col_Peak, closestpeak_column, d
     #### TODO: make two regions separated by dm_region_limit ####
     #df.sort_values(by=[dm_column], inplace=True)
     #df.reset_index(drop=True, inplace=True)
-    df_below =  df.loc[df[dm_column] < dm_region_limit]
-    df_above = df.loc[df[dm_column] >= dm_region_limit]
+    df_below =  dfo.loc[dfo[dm_column] < dm_region_limit]
+    df_above = dfo.loc[dfo[dm_column] >= dm_region_limit]
     df_list = [df_below, df_above]
     #############################################################
     
@@ -243,9 +255,12 @@ def get_global_FDR(df, score_column, peak_label, col_Peak, closestpeak_column, d
         # calculate global FDR
         each_df['GlobalFDR'] = each_df['Global_Rank_D']/each_df['Global_Rank_T']
     
-    df = pd.concat([df_below, df_above])
-    
-    return df
+    dfo = pd.concat([df_below, df_above])
+    if globalFDR_orphans:
+        df = pd.concat([dfp, dfo], axis=0)
+        return df
+    else:
+        return dfo
 
 def filtering(df, fdr_filter, target_filter): # This goes on a separate module now
     if target_filter: # =! 0
@@ -254,7 +269,7 @@ def filtering(df, fdr_filter, target_filter): # This goes on a separate module n
         df[df['GlobalFDR'] >= fdr_filter]
     return df
 
-def bin_operations(df, score_column, peak_label, col_Peak, closestpeak_column, peak_outlier_value):
+def bin_operations(df, score_column, peak_label, col_Peak, closestpeak_column):
     '''
     Main function that handles the operations by BIN
     '''
@@ -263,10 +278,10 @@ def bin_operations(df, score_column, peak_label, col_Peak, closestpeak_column, p
     (bin_value, df) = df[0], df[1]
     
     # calculate local FDR
-    df = get_local_FDR(df, score_column, peak_outlier_value)
+    df = get_local_FDR(df, score_column)
     
     # calculate peak FDR
-    df = get_peak_FDR(df, score_column, col_Peak, closestpeak_column, peak_outlier_value)
+    df = get_peak_FDR(df, score_column, col_Peak, closestpeak_column)
     
     # calculate spire FDR
     #if recom_data: #recom_data =! 0
@@ -307,7 +322,6 @@ def main(args):
     score_column = config._sections['PeakFDRer']['score_column']
     dm_column = config._sections['PeakFDRer']['dm_column']
     dm_region_limit = float(config._sections['PeakFDRer']['dm_region_limit'])
-    peak_outlier_value = float(config._sections['PeakFDRer']['peak_outlier_value'])
     #recom_data = config._sections['PeakFDRer']['recom_data']
     peak_label = config._sections['PeakAssignator']['peak_label']
     col_Peak = config._sections['PeakFDRer']['peak_column']
@@ -317,6 +331,8 @@ def main(args):
     globalfdr = float(config._sections['PeakFDRer']['global_threshold'])
     localfdr = float(config._sections['PeakFDRer']['local_threshold'])
     peakfdr = float(config._sections['PeakFDRer']['peak_threshold'])
+    localFDR_orphans = config.getboolean('PeakFDRer', 'localFDR_to_orphans_only')
+    globalFDR_orphans = config.getboolean('PeakFDRer', 'globalFDR_to_orphans_only')
     
     # try:
     #     if not os.path.exists(args.output):
@@ -361,7 +377,7 @@ def main(args):
                             closestpeak_column,
                             dm_column,
                             dm_region_limit,
-                            peak_outlier_value,
+                            globalFDR_orphans,
                             n_workers)
     else:
         with concurrent.futures.ProcessPoolExecutor(max_workers=n_workers) as executor:
@@ -372,7 +388,7 @@ def main(args):
                                                                               repeat(closestpeak_column),
                                                                               repeat(dm_column),
                                                                               repeat(dm_region_limit),
-                                                                              repeat(peak_outlier_value),
+                                                                              repeat(globalFDR_orphans),
                                                                               repeat(n_workers))
         df = pd.concat(df)
     
@@ -382,8 +398,7 @@ def main(args):
                                                                    #repeat(recom_data), 
                                                                    repeat(peak_label),
                                                                    repeat(col_Peak),
-                                                                   repeat(closestpeak_column),
-                                                                   repeat(peak_outlier_value)) 
+                                                                   repeat(closestpeak_column)) 
     df = pd.concat(df)
     
     logging.info("Sort by calibrated DeltaMass")
