@@ -133,10 +133,10 @@ def get_peak_FDR(df, score_column, col_Peak, closestpeak_column):
     Calculate peak FDR for each peak in one bin (1 Da)
     '''
     dfo = df[df.PeakAssignation!='PEAK'].copy()
-    dfo['PeakFDR'] = ''
-    dfo['Rank'] = ''
-    dfo['Peak_Rank_T'] = ''
-    dfo['Peak_Rank_D'] = ''
+    dfo['PeakFDR'] = np.nan
+    dfo['Rank'] = np.nan
+    dfo['Peak_Rank_T'] = np.nan
+    dfo['Peak_Rank_D'] = np.nan
     dfp = df[df.PeakAssignation=='PEAK'].copy()
     dfp['Rank'] = -1
     dfp['Peak_Rank_T'] = -1
@@ -197,7 +197,7 @@ def get_local_FDR(df, score_column, localFDR_orphans):
     if localFDR_orphans: # Calculate and apply local FDR to orphan PSMs only
         dfo = df[df.PeakAssignation!='PEAK'].copy()
         dfp = df[df.PeakAssignation=='PEAK'].copy()
-        dfp['Global_Rank_T'] = dfp['Global_Rank_D'] = dfp['GlobalFDR'] = ''
+        dfp['Global_Rank_T'] = dfp['Global_Rank_D'] = dfp['GlobalFDR'] = np.nan
     else: # Calculate and apply local FDR to all PSMs
         dfo = df
     # sort bin
@@ -233,7 +233,7 @@ def get_global_FDR(df, score_column, peak_label, col_Peak, closestpeak_column,
     if globalFDR_orphans: # Calculate and apply global FDR to orphan PSMs only
         dfo = df[df.PeakAssignation!='PEAK'].copy()
         dfp = df[df.PeakAssignation=='PEAK'].copy()
-        dfp['Global_Rank_T'] = dfp['Global_Rank_D'] = dfp['GlobalFDR'] = ''
+        dfp['Global_Rank_T'] = dfp['Global_Rank_D'] = dfp['GlobalFDR'] = np.nan
     else: # Calculate and apply global FDR to all PSMs
         dfo = df
     print("\t\t\t\t\tCalculating Global FDR for: " + experiment_value)
@@ -437,7 +437,9 @@ def main(args):
                   " local FDR and " + str(peakfdr) +
                   " peak FDR" + "..."))
     logging.info("\tPSMs before filtering: " + str(len(df)))
-    df_filter = df[(df.GlobalFDR<=globalfdr) & (df.LocalFDR<=localfdr) & (df.PeakFDR<=peakfdr)]
+    df_filter = df[((df.GlobalFDR<=globalfdr)|(df.GlobalFDR.isnull())) &
+                   ((df.LocalFDR<=localfdr)|(df.LocalFDR.isnull())) &
+                   ((df.PeakFDR<=peakfdr)|(df.PeakFDR.isnull()))]
     logging.info("\tPSMs after filtering: " + str(len(df_filter)))
     # Split in folders by Experiment
     if args.appfile:
