@@ -139,10 +139,10 @@ def get_peak_FDR(df, score_column, col_Peak, closestpeak_column):
     dfo['PeakFDR'] = np.nan
     # identify peaks
     peaks = df[df[col_Peak] == 'PEAK'] # filter by Peak
-    peaks['Rank'] = -1
-    peaks['Peak_Rank_T'] = -1
-    peaks['Peak_Rank_D'] = -1
-    peaks['PeakFDR'] = -1
+    peaks['Rank'] = -1.0
+    peaks['Peak_Rank_T'] = -1.0
+    peaks['Peak_Rank_D'] = -1.0
+    peaks['PeakFDR'] = -1.0
     grouped_peaks = peaks.groupby(closestpeak_column) # group by ClosestPeak
     # df.get_group("group")
     #grouped_peaks.groups # group info
@@ -169,9 +169,9 @@ def get_peak_FDR(df, score_column, col_Peak, closestpeak_column):
         group.sort_values(by=[score_column, 'Label'], inplace=True, ascending=False)
         group['Rank'] = group.groupby('Label').cumcount()+1 # This column can be deleted later
         group['Peak_Rank_T'] = np.where(group['Label']=='Target', group['Rank'], 0)
-        group['Peak_Rank_T'] = group['Peak_Rank_T'].replace(to_replace=0, method='ffill')
+        group['Peak_Rank_T'] = group['Peak_Rank_T'].replace(0, np.nan).ffill()
         group['Peak_Rank_D'] = np.where(group['Label'] == 'Decoy', group['Rank'], 0)
-        group['Peak_Rank_D'] =  group['Peak_Rank_D'].replace(to_replace=0, method='ffill')
+        group['Peak_Rank_D'] =  group['Peak_Rank_D'].replace(0, np.nan).ffill()
         # calculate peak FDR
         group['PeakFDR'] = group['Peak_Rank_D']/group['Peak_Rank_T']
         return group
@@ -210,9 +210,9 @@ def get_local_FDR(df, score_column, localFDR_orphans):
     # count targets and decoys
     dfo['Rank'] = dfo.groupby('Label').cumcount()+1 # This column can be deleted later
     dfo['Local_Rank_T'] = np.where(dfo['Label']=='Target', dfo['Rank'], 0)
-    dfo['Local_Rank_T'] = dfo['Local_Rank_T'].replace(to_replace=0, method='ffill')
+    dfo['Local_Rank_T'] = dfo['Local_Rank_T'].replace(0, np.nan).ffill()
     dfo['Local_Rank_D'] = np.where(dfo['Label'] == 'Decoy', dfo['Rank'], 0)
-    dfo['Local_Rank_D'] =  dfo['Local_Rank_D'].replace(to_replace=0, method='ffill')
+    dfo['Local_Rank_D'] =  dfo['Local_Rank_D'].replace(0, np.nan).ffill()
     dfo.drop(['Rank'], axis = 1, inplace = True)
     
     # calculate local FDR
@@ -257,9 +257,9 @@ def get_global_FDR(df, score_column, peak_label, col_Peak, closestpeak_column,
         # count targets and decoys
         each_df['Rank'] = each_df.groupby('Label').cumcount()+1 # This column can be deleted later
         each_df['Global_Rank_T'] = np.where(each_df['Label']=='Target', each_df['Rank'], 0)
-        each_df['Global_Rank_T'] = each_df['Global_Rank_T'].replace(to_replace=0, method='ffill')
+        each_df['Global_Rank_T'] = each_df['Global_Rank_T'].replace(0, np.nan).ffill()
         each_df['Global_Rank_D'] = np.where(each_df['Label'] == 'Decoy', each_df['Rank'], 0)
-        each_df['Global_Rank_D'] =  each_df['Global_Rank_D'].replace(to_replace=0, method='ffill')
+        each_df['Global_Rank_D'] =  each_df['Global_Rank_D'].replace(0, np.nan).ffill()
         each_df.drop(['Rank'], axis = 1, inplace = True)
         
         # calculate global FDR
