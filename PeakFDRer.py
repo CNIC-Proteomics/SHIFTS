@@ -228,14 +228,14 @@ def get_global_FDR(df, score_column, peak_label, col_Peak, closestpeak_column,
     '''
     Calculate global FDR
     '''
+    # get the EXPERIMENT value from the input tuple df=(experiment,df)
+    (experiment_value, df) = df[0], df[1]
     if globalFDR_orphans: # Calculate and apply global FDR to orphan PSMs only
         dfo = df[df.PeakAssignation!='PEAK'].copy()
         dfp = df[df.PeakAssignation=='PEAK'].copy()
         dfp['Global_Rank_T'] = dfp['Global_Rank_D'] = dfp['GlobalFDR'] = ''
     else: # Calculate and apply global FDR to all PSMs
         dfo = df
-    # get the EXPERIMENT value from the input tuple df=(experiment,df)
-    (experiment_value, dfo) = dfo[0], dfo[1]
     print("\t\t\t\t\tCalculating Global FDR for: " + experiment_value)
     # sort by score
     # if recom_data == 0: # by Comet Xcorr
