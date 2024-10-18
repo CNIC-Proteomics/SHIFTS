@@ -190,28 +190,38 @@ def get_peak_FDR(df, score_column, col_Peak, closestpeak_column):
     df.drop(['Rank'], axis = 1, inplace = True)
     return df
 
-def get_local_FDR(df, score_column):
+def get_local_FDR(df, score_column, localFDR_orphans):
     '''
     Calculate local FDR for one bin (1 Da)
     '''
+    if localFDR_orphans: # Calculate and apply local FDR to orphan PSMs only
+        dfo = df[df.PeakAssignation!='PEAK'].copy()
+        dfp = df[df.PeakAssignation=='PEAK'].copy()
+        dfp['Global_Rank_T'] = dfp['Global_Rank_D'] = dfp['GlobalFDR'] = ''
+    else: # Calculate and apply local FDR to all PSMs
+        dfo = df
     # sort bin
     #if recom_data == 0: # by Comet Xcorr
         #df.sort_values(by=['Xcor', 'Label'], inplace=True, ascending=False)
     #else: # by Comet cXcorr
         #df.sort_values(by=['CorXcor', 'Label'], inplace=Tru, ascending=False) # TODO: Fix SHIFTS cXcorr
-    df.sort_values(by=[score_column, 'Label'], inplace=True, ascending=False)
+    dfo.sort_values(by=[score_column, 'Label'], inplace=True, ascending=False)
         
     # count targets and decoys
-    df['Rank'] = df.groupby('Label').cumcount()+1 # This column can be deleted later
-    df['Local_Rank_T'] = np.where(df['Label']=='Target', df['Rank'], 0)
-    df['Local_Rank_T'] = df['Local_Rank_T'].replace(to_replace=0, method='ffill')
-    df['Local_Rank_D'] = np.where(df['Label'] == 'Decoy', df['Rank'], 0)
-    df['Local_Rank_D'] =  df['Local_Rank_D'].replace(to_replace=0, method='ffill')
-    df.drop(['Rank'], axis = 1, inplace = True)
+    dfo['Rank'] = dfo.groupby('Label').cumcount()+1 # This column can be deleted later
+    dfo['Local_Rank_T'] = np.where(dfo['Label']=='Target', dfo['Rank'], 0)
+    dfo['Local_Rank_T'] = dfo['Local_Rank_T'].replace(to_replace=0, method='ffill')
+    dfo['Local_Rank_D'] = np.where(dfo['Label'] == 'Decoy', dfo['Rank'], 0)
+    dfo['Local_Rank_D'] =  dfo['Local_Rank_D'].replace(to_replace=0, method='ffill')
+    dfo.drop(['Rank'], axis = 1, inplace = True)
     
     # calculate local FDR
-    df['LocalFDR'] = df['Local_Rank_D']/df['Local_Rank_T']
-    return df
+    dfo['LocalFDR'] = dfo['Local_Rank_D']/dfo['Local_Rank_T']
+    if localFDR_orphans:
+        df = pd.concat([dfp, dfo], axis=0)
+        return df
+    else:
+        return dfo
 
 def get_global_FDR(df, score_column, peak_label, col_Peak, closestpeak_column,
                    dm_column, dm_region_limit, globalFDR_orphans, n_workers):
@@ -225,7 +235,7 @@ def get_global_FDR(df, score_column, peak_label, col_Peak, closestpeak_column,
     else: # Calculate and apply global FDR to all PSMs
         dfo = df
     # get the EXPERIMENT value from the input tuple df=(experiment,df)
-    (experiment_value, dfo) = df[0], df[1]
+    (experiment_value, dfo) = dfo[0], dfo[1]
     print("\t\t\t\t\tCalculating Global FDR for: " + experiment_value)
     # sort by score
     # if recom_data == 0: # by Comet Xcorr
@@ -269,7 +279,8 @@ def filtering(df, fdr_filter, target_filter): # This goes on a separate module n
         df[df['GlobalFDR'] >= fdr_filter]
     return df
 
-def bin_operations(df, score_column, peak_label, col_Peak, closestpeak_column):
+def bin_operations(df, score_column, peak_label, col_Peak, closestpeak_column,
+                   localFDR_orphans):
     '''
     Main function that handles the operations by BIN
     '''
@@ -278,7 +289,7 @@ def bin_operations(df, score_column, peak_label, col_Peak, closestpeak_column):
     (bin_value, df) = df[0], df[1]
     
     # calculate local FDR
-    df = get_local_FDR(df, score_column)
+    df = get_local_FDR(df, score_column, localFDR_orphans)
     
     # calculate peak FDR
     df = get_peak_FDR(df, score_column, col_Peak, closestpeak_column)
@@ -398,7 +409,8 @@ def main(args):
                                                                    #repeat(recom_data), 
                                                                    repeat(peak_label),
                                                                    repeat(col_Peak),
-                                                                   repeat(closestpeak_column)) 
+                                                                   repeat(closestpeak_column),
+                                                                   repeat(localFDR_orphans)) 
     df = pd.concat(df)
     
     logging.info("Sort by calibrated DeltaMass")
