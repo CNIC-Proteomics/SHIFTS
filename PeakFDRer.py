@@ -132,17 +132,17 @@ def get_peak_FDR(df, score_column, col_Peak, closestpeak_column):
     '''
     Calculate peak FDR for each peak in one bin (1 Da)
     '''
-    dfo = df[df.PeakAssignation!='PEAK'].copy()
-    dfo['PeakFDR'] = np.nan
+    dfo = df[df[col_Peak] != 'PEAK'].copy()
     dfo['Rank'] = np.nan
     dfo['Peak_Rank_T'] = np.nan
     dfo['Peak_Rank_D'] = np.nan
-    dfp = df[df.PeakAssignation=='PEAK'].copy()
-    dfp['Rank'] = -1
-    dfp['Peak_Rank_T'] = -1
-    dfp['Peak_Rank_D'] = -1
+    dfo['PeakFDR'] = np.nan
     # identify peaks
-    peaks = dfp[dfp[col_Peak] == 'PEAK'] # filter by Peak
+    peaks = df[df[col_Peak] == 'PEAK'] # filter by Peak
+    peaks['Rank'] = -1
+    peaks['Peak_Rank_T'] = -1
+    peaks['Peak_Rank_D'] = -1
+    peaks['PeakFDR'] = -1
     grouped_peaks = peaks.groupby(closestpeak_column) # group by ClosestPeak
     # df.get_group("group")
     #grouped_peaks.groups # group info
@@ -182,11 +182,11 @@ def get_peak_FDR(df, score_column, col_Peak, closestpeak_column):
     if len(peaks_df) > 0:
         final_peaks_df = pd.concat(peaks_df)
         # join with df
-        common_index = df.index.intersection(final_peaks_df.index)
-        common_columns = df.columns.intersection(final_peaks_df.columns)
-        dfp.loc[common_index, common_columns] = final_peaks_df.loc[common_index, common_columns]
+        common_index = peaks.index.intersection(final_peaks_df.index)
+        common_columns = peaks.columns.intersection(final_peaks_df.columns)
+        peaks.loc[common_index, common_columns] = final_peaks_df.loc[common_index, common_columns]
     ###
-    df = pd.concat([dfp, dfo], axis=0)
+    df = pd.concat([peaks, dfo], axis=0)
     df.drop(['Rank'], axis = 1, inplace = True)
     return df
 
