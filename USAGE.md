@@ -4,7 +4,7 @@ Every SHIFTS module uses configuration files (INI), but some of the parameters i
 
 ## 1. SHIFTSadapter
 
-This module adapts a Comet-PTM or Recom file so that it can be analyzed with SHIFTS. If the input file is of a different type that already does not have any extra lines before the column headers, this step can be skipped. Every other module following this one assumes that the input file’s first line contains the column names.
+This module adapts a Comet-PTM or Recom file so that it can be analyzed with SHIFTS. It removes extra lines before the column headers and adds a column containing the input file name. If the input file is of a different type that already does not have any extra lines before the column headers and contains an input file name column, this step can be skipped. Every other module following this one assumes that the input file’s first line contains the column names.
 
   + Input:
     - A tab-separated file from Comet-PTM or Recom output (with header).
