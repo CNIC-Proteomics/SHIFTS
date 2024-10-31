@@ -49,7 +49,7 @@ def read_experiments(experiments_table):
         #TODO: read filepath or everything in folder
     return df
 
-def make_groups(df, groups):
+def make_groups(df, groups, raw_column):
     '''
     Add Batch and Experiment columns to input file with the peak assignation.
     '''
@@ -76,7 +76,7 @@ def make_groups(df, groups):
         group_dict.setdefault(currentid, [])
         group_dict[currentid].append(currentvalue)
     #df['Experiment'] = np.vectorize(_match_file)(group_dict, df['Filename'])[0]
-    df['Experiment'] = np.vectorize(_match_file)(group_dict, df['Raw'])
+    df['Experiment'] = np.vectorize(_match_file)(group_dict, df[raw_column])
     #df['Batch'] = np.vectorize(_match_file)(group_dict, df['Filename'])[1]
     if 'N/A' in df['Experiment'].unique():
         logging.info('Warning: ' + str(df['Experiment'].value_counts()['N/A']) + ' rows could not be assigned to an experiment! They will still be used to calculate Local and Peak FDR.') # They will all be grouped together for FDR calculations
@@ -331,6 +331,7 @@ def main(args):
     # Main variables
     n_workers = args.n_workers
     score_column = config._sections['PeakFDRer']['score_column']
+    raw_column = config._sections['PeakFDRer']['raw_column']
     dm_column = config._sections['PeakFDRer']['dm_column']
     dm_region_limit = float(config._sections['PeakFDRer']['dm_region_limit'])
     #recom_data = config._sections['PeakFDRer']['recom_data']
@@ -360,7 +361,7 @@ def main(args):
     # Add groups
     logging.info('Reading experiments table...')
     groups = read_experiments(args.experiment_table)
-    df = make_groups(df, groups)
+    df = make_groups(df, groups, raw_column)
     # Return info
     group_dict = {a: b['Filename'].tolist() for a,b in groups.groupby('Experiment')}
     for key in group_dict:
