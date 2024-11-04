@@ -202,8 +202,13 @@ def main(args):
     # df = pd.concat(df)
     # df.reset_index(drop=True, inplace=True)
     logging.info("Reading input file...")
-    # df = pd.read_csv(args.infile, sep="\t", float_precision='high', low_memory=False)
-    df = pd.read_feather(args.infile)
+    mode = 0
+    if str(args.infile)[-7:].lower() == 'feather':
+        df = pd.read_feather(args.infile)
+    else:
+        df = pd.read_csv(args.infile, sep="\t", float_precision='high', low_memory=False)
+        mode = 1
+        
     logging.info("Create a column with the bin")
     df['bin'] = df[col_CalDeltaMH].astype(str).str.extract(r'^([^\.]*)')
 
@@ -255,8 +260,12 @@ def main(args):
     # end:printHDF5
     # df.to_csv('data.tsv', sep="\t", index=False)
     outfile = args.infile[:-8] + '_PeakAssignation.feather'
+    if mode == 0:
+        df.to_feather(outfile)
+    else:
+        outfile = args.infile[:-4] + '_PeakAssignation.txt'
+        df.to_csv(outfile, index=False, sep='\t', encoding='utf-8')
     # df.to_csv(outfile, index=False, sep='\t', encoding='utf-8')
-    df.to_feather(outfile)
     logging.info("Peak assignation finished.")
     
 
