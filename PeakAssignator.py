@@ -109,11 +109,11 @@ def bin_operations(df, apex_list, ppm_max, peak_label, orphan_label,
     (bin_value, df) = float(df[0]), df[1]
     
     # assign to peaks
-    df[col_ClosestPeak] = df.apply(lambda x: closest_peak(apex_list, x[col_CalDeltaMH]), axis = 1)
+    df[col_ClosestPeak] = df.apply(lambda x: closest_peak(apex_list, float(x[col_CalDeltaMH])), axis = 1)
 
     # identify orphans
-    df[col_Peak] = df.apply(lambda x: find_orphans(ppm_max, x[col_TheoMass], x[col_ClosestPeak], x[col_CalDeltaMH], peak_label, orphan_label)[0], axis = 1)
-    df[col_ppm] = df.apply(lambda x: find_orphans(ppm_max, x[col_TheoMass], x[col_ClosestPeak], x[col_CalDeltaMH], peak_label, orphan_label)[1], axis = 1)
+    df[col_Peak] = df.apply(lambda x: find_orphans(ppm_max, float(x[col_TheoMass]), float(x[col_ClosestPeak]), float(x[col_CalDeltaMH]), peak_label, orphan_label)[0], axis = 1)
+    df[col_ppm] = df.apply(lambda x: find_orphans(ppm_max, float(x[col_TheoMass]), float(x[col_ClosestPeak]), float(x[col_CalDeltaMH]), peak_label, orphan_label)[1], axis = 1)
     df[col_Peak] = df[col_Peak].astype('category')
     
     # calculate FDR
@@ -208,7 +208,6 @@ def main(args):
     else:
         df = pd.read_csv(args.infile, sep="\t", float_precision='high', low_memory=False)
         mode = 1
-        
     logging.info("Create a column with the bin")
     df['bin'] = df[col_CalDeltaMH].astype(str).str.extract(r'^([^\.]*)')
 
@@ -224,7 +223,7 @@ def main(args):
                                                                    repeat(col_Peak),
                                                                    repeat(col_DM),
                                                                    repeat(col_TheoMass),
-                                                                   repeat(col_ppm)) 
+                                                                   repeat(col_ppm))
     df = pd.concat(df)
     #logging.info("calculate gobal FDR")
     #df = get_global_FDR(df, args.xcorr)
@@ -260,12 +259,14 @@ def main(args):
     # end:printHDF5
     # df.to_csv('data.tsv', sep="\t", index=False)
     outfile = args.infile[:-8] + '_PeakAssignation.feather'
+    # df.to_csv(outfile, index=False, sep='\t', encoding='utf-8')
+    df.Assigned_deltaMass = df.Assigned_deltaMass.astype(float)
+    # if str(args.infile)[-7:].lower() == 'feather':
     if mode == 0:
         df.to_feather(outfile)
     else:
         outfile = args.infile[:-4] + '_PeakAssignation.txt'
         df.to_csv(outfile, index=False, sep='\t', encoding='utf-8')
-    # df.to_csv(outfile, index=False, sep='\t', encoding='utf-8')
     logging.info("Peak assignation finished.")
     
 
