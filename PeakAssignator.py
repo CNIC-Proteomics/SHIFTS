@@ -201,16 +201,25 @@ def main(args):
     #     df = executor.map(concatInfiles, infiles)
     # df = pd.concat(df)
     # df.reset_index(drop=True, inplace=True)
-    logging.info("Reading input file...")
-    mode = 0
-    if str(args.infile)[-7:].lower() == 'feather':
-        df = pd.read_feather(args.infile)
+    if args.infile.strip().lower().endswith('.feather'):
+        logging.info("Reading input feather file...")
+        try:
+            df = pd.read_feather(args.infile)
+        except Exception as e:
+            logging.error("ERROR: Reading the input feather file")
+            sys.exit(1)
     else:
-        df = pd.read_csv(args.infile, sep="\t", float_precision='high', low_memory=False)
-        mode = 1
+        logging.info("Reading input feather file...")
+        try:
+            df = pd.read_csv(args.infile, sep="\t", float_precision='high', low_memory=False)
+        except Exception as e:
+            logging.error("ERROR: Reading the input tabular file")
+            sys.exit(1)
+
     logging.info("Create a column with the bin")
     df['bin'] = df[col_CalDeltaMH].astype(str).str.extract(r'^([^\.]*)')
-
+    df['theo_mh'] = df['theo_mh'].astype(float)
+    df[col_CalDeltaMH] = df[col_CalDeltaMH].astype(float)
 
     logging.info("Parallel the operations by bin")
     with concurrent.futures.ProcessPoolExecutor(max_workers=args.n_workers) as executor:        
@@ -223,7 +232,7 @@ def main(args):
                                                                    repeat(col_Peak),
                                                                    repeat(col_DM),
                                                                    repeat(col_TheoMass),
-                                                                   repeat(col_ppm))
+                                                                   repeat(col_ppm)) 
     df = pd.concat(df)
     #logging.info("calculate gobal FDR")
     #df = get_global_FDR(df, args.xcorr)
@@ -257,15 +266,11 @@ def main(args):
     # tables.parameters.MAX_NUMEXPR_THREADS = args.n_workers
     # df.to_hdf('data.h5', key='df', mode='w')
     # end:printHDF5
-    # df.to_csv('data.tsv', sep="\t", index=False)
-    outfile = args.infile[:-8] + '_PeakAssignation.feather'
-    # df.to_csv(outfile, index=False, sep='\t', encoding='utf-8')
-    df.Assigned_deltaMass = df.Assigned_deltaMass.astype(float)
-    # if str(args.infile)[-7:].lower() == 'feather':
-    if mode == 0:
+    if args.infile.strip().lower().endswith('.feather'):
+        outfile = args.infile[:-8] + '_PeakAssignation.feather'
         df.to_feather(outfile)
     else:
-        outfile = args.infile[:-4] + '_PeakAssignation.txt'
+        outfile = args.infile[:-8] + '_PeakAssignation.tsv'
         df.to_csv(outfile, index=False, sep='\t', encoding='utf-8')
     logging.info("Peak assignation finished.")
     

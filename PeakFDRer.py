@@ -30,19 +30,19 @@ pd.options.mode.chained_assignment = None  # default='warn'
 # Local functions #
 ###################
 
-def read_experiments(experiments_table):
+def read_experiments(experiments_table, raw_column):
     '''
     Read input file containing groups and filenames in tab-separated format.
     '''
-    #df = pd.read_csv(experiments_table, sep="\t", names=['Batch', 'Experiment', 'Filename'])
-    df = pd.read_csv(experiments_table, sep="\t", names=['Experiment', 'Filename'])
+    #df = pd.read_csv(experiments_table, sep="\t", names=['Batch', 'Experiment', raw_column])
+    df = pd.read_csv(experiments_table, sep="\t", names=['Experiment', raw_column])
     #df['Batch'] = df['Batch'].astype('string')
     #df['Batch'] = df['Batch'].str.strip()
     df['Experiment'] = df['Experiment'].astype('string')
     df['Experiment'] = df['Experiment'].str.strip()
-    df['Filename'] = df['Filename'].astype('string')
-    df['Filename'] = df['Filename'].str.strip()
-    if df['Filename'].duplicated().any(): # Check no repeats
+    df[raw_column] = df[raw_column].astype('string')
+    df[raw_column] = df[raw_column].str.strip()
+    if df[raw_column].duplicated().any(): # Check no repeats
         sys.exit('ERROR: Experiments table contains repeat values in the filename column')
     #exp_groups = exp_df.groupby(by = exp_df.columns[0], axis = 0)
     #for position, exp in exp_groups:
@@ -363,10 +363,10 @@ def main(args):
     df = pd.read_feather(args.infile)
     # Add groups
     logging.info('Reading experiments table...')
-    groups = read_experiments(args.experiment_table)
+    groups = read_experiments(args.experiment_table, raw_column)
     df = make_groups(df, groups, raw_column)
     # Return info
-    group_dict = {a: b['Filename'].tolist() for a,b in groups.groupby('Experiment')}
+    group_dict = {a: b[raw_column].tolist() for a,b in groups.groupby('Experiment')}
     for key in group_dict:
         logging.info('\t' + key + ': ' + str(len(group_dict[key])) + ' files')
     
@@ -438,9 +438,6 @@ def main(args):
     # d_t = df.tail()
     # d_h.to_csv("kk_head.tsv", sep="\t")
     # d_t.to_csv("kk_tail.tsv", sep="\t")
-    
-    # Clean filename
-    df['Filename'] = df.apply(lambda x: x['Filename'].split('\\')[-1].split('/')[-1][:-4], axis=1)
     
     # Filter
     logging.info(("Filtering at " + str(globalfdr) +
