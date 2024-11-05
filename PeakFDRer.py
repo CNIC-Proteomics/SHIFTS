@@ -174,6 +174,7 @@ def get_peak_FDR(df, score_column, col_Peak, closestpeak_column):
         group['Peak_Rank_D'] =  group['Peak_Rank_D'].replace(0, np.nan).ffill()
         # calculate peak FDR
         group['PeakFDR'] = group['Peak_Rank_D']/group['Peak_Rank_T']
+        group['PeakFDR'] =  group['PeakFDR'].replace(np.nan, 0).ffill()
         return group
     peaks_df = []
     for group in grouped_peaks:
@@ -217,6 +218,7 @@ def get_local_FDR(df, score_column, localFDR_orphans):
     
     # calculate local FDR
     dfo['LocalFDR'] = dfo['Local_Rank_D']/dfo['Local_Rank_T']
+    dfo['LocalFDR'] =  dfo['LocalFDR'].replace(np.nan, 0).ffill()
     if localFDR_orphans:
         df = pd.concat([dfp, dfo], axis=0)
         return df
@@ -264,6 +266,7 @@ def get_global_FDR(df, score_column, peak_label, col_Peak, closestpeak_column,
         
         # calculate global FDR
         each_df['GlobalFDR'] = each_df['Global_Rank_D']/each_df['Global_Rank_T']
+        each_df['GlobalFDR'] =  each_df['GlobalFDR'].replace(np.nan, 0).ffill()
     
     dfo = pd.concat([df_below, df_above])
     if globalFDR_orphans:
